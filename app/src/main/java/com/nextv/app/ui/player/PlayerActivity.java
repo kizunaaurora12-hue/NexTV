@@ -26,6 +26,10 @@ import androidx.media3.common.Player;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.drm.DefaultDrmSessionManager;
+import androidx.media3.exoplayer.drm.FrameworkMediaDrm;
+import androidx.media3.exoplayer.drm.HttpMediaDrmCallback;
+import androidx.media3.exoplayer.drm.LocalMediaDrmCallback;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.ui.AspectRatioFrameLayout;
 import androidx.media3.ui.PlayerView;
@@ -59,23 +63,23 @@ public class PlayerActivity extends AppCompatActivity {
     private ExoPlayer  player;
     private PlayerView playerView;
 
-    // ── Views dari custom_control (terintegrasi di PlayerView) ─────────
+    // ── Views custom_control (dalam PlayerView) ────────────────────────
     private TextView  tvCtrlChannelName;
     private TextView  tvCtrlCategoryName;
     private TextView  tvCtrlChNumber;
     private ImageView ivCtrlLogo;
-    private TextView  btnCtrlResolution;  // label resolusi aktif
+    private TextView  btnCtrlResolution;
 
-    // ── Views dari activity_player.xml ────────────────────────────────
-    private View       panelChannelList;
-    private View       popupResolution;
-    private View       popupScreenMode;
-    private View       overlayStatus;
-    private TextView   tvStatus;
-    private ProgressBar progressBuffering;
-    private TextView   tvChannelSwitchNotif;
+    // ── Views activity_player.xml ──────────────────────────────────────
+    private View         panelChannelList;
+    private View         popupResolution;
+    private View         popupScreenMode;
+    private View         overlayStatus;
+    private TextView     tvStatus;
+    private ProgressBar  progressBuffering;
+    private TextView     tvChannelSwitchNotif;
     private RecyclerView rvPanelChannels;
-    private EditText   etPanelSearch;
+    private EditText     etPanelSearch;
 
     // ── State ──────────────────────────────────────────────────────────
     private Handler  handler;
@@ -93,7 +97,6 @@ public class PlayerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        // Fullscreen
         getWindow().getDecorView().setSystemUiVisibility(
             View.SYSTEM_UI_FLAG_FULLSCREEN |
             View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
@@ -109,7 +112,7 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     private void bindViews() {
-        playerView = findViewById(R.id.player_view);
+        playerView           = findViewById(R.id.player_view);
         panelChannelList     = findViewById(R.id.panel_channel_list);
         popupResolution      = findViewById(R.id.popup_resolution);
         popupScreenMode      = findViewById(R.id.popup_screen_mode);
@@ -120,9 +123,7 @@ public class PlayerActivity extends AppCompatActivity {
         rvPanelChannels      = findViewById(R.id.rv_panel_channels);
         etPanelSearch        = findViewById(R.id.et_panel_search);
 
-        // Views DALAM custom_control (terintegrasi di PlayerView)
-        // Harus dicari setelah PlayerView di-attach
-        // Gunakan handler post agar PlayerView sudah inflate controllernya
+        // Views di dalam custom_control — dicari setelah PlayerView selesai inflate
         playerView.post(() -> {
             tvCtrlChannelName  = playerView.findViewById(R.id.tv_ctrl_channel_name);
             tvCtrlCategoryName = playerView.findViewById(R.id.tv_category_name);
@@ -150,7 +151,7 @@ public class PlayerActivity extends AppCompatActivity {
             View btnList = playerView.findViewById(R.id.btn_ctrl_channel_list);
             if (btnList != null) btnList.setOnClickListener(v -> togglePanel());
 
-            // Update info channel awal
+            // Update info awal
             String name = getIntent().getStringExtra(EXTRA_CHANNEL_NAME);
             String logo = getIntent().getStringExtra(EXTRA_CHANNEL_LOGO);
             updateControlInfo(name, null, logo, currentIndex);
@@ -158,53 +159,44 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     private void setupPopupsAndPanel() {
-        // Tutup panel
         View btnClosePanel = findViewById(R.id.btn_close_panel);
         if (btnClosePanel != null) btnClosePanel.setOnClickListener(v -> hidePanel());
 
-        // Search di panel
         if (etPanelSearch != null) {
             etPanelSearch.addTextChangedListener(new TextWatcher() {
                 @Override public void beforeTextChanged(CharSequence s, int st, int c, int a) {}
-                @Override public void onTextChanged(CharSequence s, int st, int b, int c) {
-                    filterPanelChannels(s.toString());
-                }
+                @Override public void onTextChanged(CharSequence s, int st, int b, int c) { filterPanelChannels(s.toString()); }
                 @Override public void afterTextChanged(Editable s) {}
             });
         }
 
-        // Resolusi
-        setupResOption(R.id.res_auto,  "AUTO",  -1, -1);
+        setupResOption(R.id.res_auto,  "AUTO",  -1,   -1);
         setupResOption(R.id.res_1080,  "1080p", 1920, 1080);
         setupResOption(R.id.res_720,   "720p",  1280, 720);
         setupResOption(R.id.res_480,   "480p",  854,  480);
         setupResOption(R.id.res_360,   "360p",  640,  360);
 
-        // Ukuran layar
-        setupScreenMode(R.id.screen_fit,          AspectRatioFrameLayout.RESIZE_MODE_FIT,          "AUTO");
-        setupScreenMode(R.id.screen_fixed_width,  AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH,  "AUTO");
-        setupScreenMode(R.id.screen_fixed_height, AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT, "AUTO");
-        setupScreenMode(R.id.screen_fill,         AspectRatioFrameLayout.RESIZE_MODE_FILL,         "AUTO");
-        setupScreenMode(R.id.screen_zoom,         AspectRatioFrameLayout.RESIZE_MODE_ZOOM,         "AUTO");
+        setupScreenMode(R.id.screen_fit,          AspectRatioFrameLayout.RESIZE_MODE_FIT);
+        setupScreenMode(R.id.screen_fixed_width,  AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH);
+        setupScreenMode(R.id.screen_fixed_height, AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT);
+        setupScreenMode(R.id.screen_fill,         AspectRatioFrameLayout.RESIZE_MODE_FILL);
+        setupScreenMode(R.id.screen_zoom,         AspectRatioFrameLayout.RESIZE_MODE_ZOOM);
     }
 
-    private void setupResOption(int viewId, String label, int w, int h) {
-        TextView tv = findViewById(viewId);
+    private void setupResOption(int id, String label, int w, int h) {
+        TextView tv = findViewById(id);
         if (tv == null) return;
-        tv.setOnClickListener(v -> {
-            applyResolution(w, h, label);
-            hidePopups();
-        });
+        tv.setOnClickListener(v -> { applyResolution(w, h, label); hidePopups(); });
     }
 
-    private void setupScreenMode(int viewId, int mode, String ignored) {
-        TextView tv = findViewById(viewId);
+    private void setupScreenMode(int id, int mode) {
+        TextView tv = findViewById(id);
         if (tv == null) return;
         tv.setOnClickListener(v -> {
             if (playerView != null) playerView.setResizeMode(mode);
             hidePopups();
-            String label = tv.getText().toString().replaceAll("^[^A-Za-z]+\\s*", "");
-            Toast.makeText(this, "Layar: " + label, Toast.LENGTH_SHORT).show();
+            String lbl = tv.getText().toString().replaceAll("^[^A-Za-z]+\\s*","");
+            Toast.makeText(this, "Layar: " + lbl, Toast.LENGTH_SHORT).show();
         });
     }
 
@@ -216,17 +208,14 @@ public class PlayerActivity extends AppCompatActivity {
         String drmKeyId      = getIntent().getStringExtra(EXTRA_DRM_KEY_ID);
         String drmKey        = getIntent().getStringExtra(EXTRA_DRM_KEY);
 
-        initPlayer();
-        playUrl(url, drmScheme, drmLicenseUrl, drmKeyId, drmKey);
+        playChannel(url, drmScheme, drmLicenseUrl, drmKeyId, drmKey);
 
-        // Load semua channel di background untuk panel navigasi
         ChannelRepository.getInstance(this).loadChannels(new ChannelRepository.Callback() {
             @Override
             public void onSuccess(List<Channel> channels) {
                 allChannels  = channels;
                 filteredList = new ArrayList<>(channels);
                 setupPanelAdapter();
-                // Update nomor & kategori dari data channel
                 if (currentIndex < channels.size()) {
                     Channel ch = channels.get(currentIndex);
                     updateControlInfo(ch.getName(), ch.getCategory(), ch.getLogo(), currentIndex);
@@ -236,30 +225,53 @@ public class PlayerActivity extends AppCompatActivity {
         });
     }
 
-    // ── ExoPlayer ─────────────────────────────────────────────────────
-    private void initPlayer() {
-        if (player != null) { player.release(); player = null; }
+    // ── ExoPlayer — dibuat ulang setiap ganti channel ─────────────────
+    private void playChannel(String url, String drmScheme, String drmLicenseUrl,
+                              String drmKeyId, String drmKey) {
+        if (url == null || url.trim().isEmpty()) {
+            showStatus("URL tidak valid", false); return;
+        }
+        showStatus("Memuat stream...", true);
+        playerInitialized = false;
 
+        // Release player lama
+        if (player != null) {
+            player.stop();
+            player.release();
+            player = null;
+        }
+
+        // ── HTTP factory ───────────────────────────────────────────────
+        DefaultHttpDataSource.Factory httpFactory =
+            new DefaultHttpDataSource.Factory()
+                .setUserAgent("NexTV/1.0")
+                .setConnectTimeoutMs(20_000)
+                .setReadTimeoutMs(20_000)
+                .setAllowCrossProtocolRedirects(true);
+
+        // ── DRM Session Manager ────────────────────────────────────────
+        DefaultDrmSessionManager drmSessionManager = buildDrmSessionManager(
+            drmScheme, drmLicenseUrl, drmKeyId, drmKey, httpFactory);
+
+        // ── Media source factory ───────────────────────────────────────
+        final DefaultDrmSessionManager finalDrm = drmSessionManager;
+        DefaultMediaSourceFactory mediaSourceFactory =
+            new DefaultMediaSourceFactory(this)
+                .setDataSourceFactory(httpFactory)
+                .setDrmSessionManagerProvider(mediaItem -> finalDrm);
+
+        // ── Player ─────────────────────────────────────────────────────
         player = new ExoPlayer.Builder(this,
                 new DefaultRenderersFactory(this)
                     .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER))
-            .setMediaSourceFactory(
-                new DefaultMediaSourceFactory(this)
-                    .setDataSourceFactory(
-                        new DefaultHttpDataSource.Factory()
-                            .setUserAgent("NexTV/1.0")
-                            .setConnectTimeoutMs(20_000)
-                            .setReadTimeoutMs(20_000)
-                            .setAllowCrossProtocolRedirects(true)))
+            .setMediaSourceFactory(mediaSourceFactory)
             .build();
 
         if (playerView != null) {
             playerView.setPlayer(player);
-            // Controller show/hide dihandle oleh PlayerView secara otomatis
-            playerView.setControllerShowTimeoutMs(4000); // auto-hide 4 detik
+            playerView.setControllerShowTimeoutMs(4000);
             playerView.setControllerHideOnTouch(true);
             playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);
-            // Listener untuk sinkronisasi popup dengan visibility controller
             playerView.setControllerVisibilityListener(
                 (PlayerView.ControllerVisibilityListener) visibility -> {
                     if (visibility != View.VISIBLE) hidePopups();
@@ -270,61 +282,147 @@ public class PlayerActivity extends AppCompatActivity {
             @Override
             public void onPlaybackStateChanged(int state) {
                 switch (state) {
-                    case Player.STATE_BUFFERING:
-                        showStatus("Buffering...", true);
-                        break;
-                    case Player.STATE_READY:
-                        hideStatus();
-                        playerInitialized = true;
-                        break;
-                    case Player.STATE_ENDED:
-                        showStatus("Stream berakhir", false);
-                        break;
+                    case Player.STATE_BUFFERING: showStatus("Buffering...", true); break;
+                    case Player.STATE_READY:     hideStatus(); playerInitialized = true; break;
+                    case Player.STATE_ENDED:     showStatus("Stream berakhir", false); break;
                 }
             }
             @Override
             public void onPlayerError(PlaybackException error) {
-                Log.e(TAG, "Error " + error.errorCode + ": " + error.getMessage());
+                Log.e(TAG, "Error " + error.errorCode + ": " + error.getMessage(), error);
                 showStatus(getErrorMessage(error), false);
             }
         });
-    }
 
-    private void playUrl(String url, String drmScheme, String drmLicenseUrl,
-                          String drmKeyId, String drmKey) {
-        if (url == null || url.trim().isEmpty()) {
-            showStatus("URL tidak valid", false); return;
-        }
-        playerInitialized = false;
-        showStatus("Memuat...", true);
-        player.setMediaItem(buildMediaItem(url.trim(), drmScheme, drmLicenseUrl, drmKeyId, drmKey));
+        // ── MediaItem (tidak perlu set DRM config karena sudah lewat DrmSessionManager) ──
+        String cleanUrl = url.trim();
+        String lower    = cleanUrl.toLowerCase();
+        String mimeType;
+        if      (lower.contains(".m3u8") || lower.contains("/hls/")) mimeType = MimeTypes.APPLICATION_M3U8;
+        else if (lower.contains(".mpd")  || lower.contains("/dash/")) mimeType = MimeTypes.APPLICATION_MPD;
+        else if (lower.startsWith("rtsp://"))                          mimeType = MimeTypes.APPLICATION_RTSP;
+        else                                                            mimeType = null;
+
+        boolean hasDrm = drmScheme != null && !drmScheme.trim().isEmpty();
+        // DRM butuh DASH
+        if (hasDrm && !MimeTypes.APPLICATION_MPD.equals(mimeType)) mimeType = MimeTypes.APPLICATION_MPD;
+
+        MediaItem.Builder itemBuilder = new MediaItem.Builder().setUri(Uri.parse(cleanUrl));
+        if (mimeType != null) itemBuilder.setMimeType(mimeType);
+
+        player.setMediaItem(itemBuilder.build());
         player.prepare();
         player.setPlayWhenReady(true);
     }
 
-    // ── Update info di dalam custom_control ───────────────────────────
-    private void updateControlInfo(String name, String category, String logo, int idx) {
-        if (tvCtrlChannelName != null && name != null)
-            tvCtrlChannelName.setText(name);
-        if (tvCtrlCategoryName != null)
-            tvCtrlCategoryName.setText(category != null ? category.toUpperCase() : "");
-        if (tvCtrlChNumber != null && idx < allChannels.size() && !allChannels.isEmpty()) {
-            Channel ch = allChannels.get(idx);
-            tvCtrlChNumber.setText("CH " + String.format("%03d", ch.getNumber()));
+    /**
+     * Bangun DrmSessionManager yang tepat:
+     *
+     * ClearKey → LocalMediaDrmCallback (inject JSON langsung ke memory, TANPA network)
+     *   Format JSON: {"keys":[{"kty":"oct","kid":"<base64url>","k":"<base64url>"}],"type":"temporary"}
+     *
+     * Widevine → HttpMediaDrmCallback (request ke license server)
+     *
+     * Tidak ada DRM → DRM_UNSUPPORTED (pakai ini agar tidak crash)
+     */
+    private DefaultDrmSessionManager buildDrmSessionManager(
+            String drmScheme, String drmLicenseUrl, String drmKeyId, String drmKey,
+            DefaultHttpDataSource.Factory httpFactory) {
+
+        boolean hasClearKey = "clearkey".equalsIgnoreCase(drmScheme);
+        boolean hasWidevine  = "widevine".equalsIgnoreCase(drmScheme);
+
+        try {
+            if (hasClearKey && drmKeyId != null && drmKey != null) {
+                // ── ClearKey: build JSON dan inject langsung ───────────
+                byte[] kidBytes = hexToBytes(drmKeyId);
+                byte[] keyBytes = hexToBytes(drmKey);
+                String kidB64 = Base64.encodeToString(kidBytes,
+                    Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+                String keyB64 = Base64.encodeToString(keyBytes,
+                    Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+
+                // JSON sesuai W3C ClearKey spec
+                String json = "{\"keys\":[{\"kty\":\"oct\",\"kid\":\""
+                    + kidB64 + "\",\"k\":\"" + keyB64
+                    + "\"}],\"type\":\"temporary\"}";
+
+                byte[] jsonBytes = json.getBytes(Charset.forName("UTF-8"));
+                Log.d(TAG, "ClearKey JSON: " + json);
+
+                // LocalMediaDrmCallback: tidak perlu network request sama sekali
+                LocalMediaDrmCallback drmCallback = new LocalMediaDrmCallback(jsonBytes);
+
+                return new DefaultDrmSessionManager.Builder()
+                    .setUuidAndExoMediaDrmProvider(
+                        C.CLEARKEY_UUID,
+                        FrameworkMediaDrm.DEFAULT_PROVIDER)
+                    .setMultiSession(false)
+                    .build(drmCallback);
+
+            } else if (hasClearKey && drmLicenseUrl != null && drmLicenseUrl.contains(":")) {
+                // ── ClearKey format "keyid:key" di licUrl ─────────────
+                String[] parts = drmLicenseUrl.trim().split(":");
+                if (parts.length == 2) {
+                    byte[] kidBytes = hexToBytes(parts[0].trim());
+                    byte[] keyBytes = hexToBytes(parts[1].trim());
+                    String kidB64 = Base64.encodeToString(kidBytes,
+                        Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+                    String keyB64 = Base64.encodeToString(keyBytes,
+                        Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+                    String json = "{\"keys\":[{\"kty\":\"oct\",\"kid\":\""
+                        + kidB64 + "\",\"k\":\"" + keyB64
+                        + "\"}],\"type\":\"temporary\"}";
+                    byte[] jsonBytes = json.getBytes(Charset.forName("UTF-8"));
+
+                    LocalMediaDrmCallback drmCallback = new LocalMediaDrmCallback(jsonBytes);
+                    return new DefaultDrmSessionManager.Builder()
+                        .setUuidAndExoMediaDrmProvider(C.CLEARKEY_UUID,
+                            FrameworkMediaDrm.DEFAULT_PROVIDER)
+                        .setMultiSession(false)
+                        .build(drmCallback);
+                }
+
+            } else if (hasWidevine && drmLicenseUrl != null) {
+                // ── Widevine: request ke license server ───────────────
+                HttpMediaDrmCallback drmCallback =
+                    new HttpMediaDrmCallback(drmLicenseUrl, httpFactory);
+
+                return new DefaultDrmSessionManager.Builder()
+                    .setUuidAndExoMediaDrmProvider(C.WIDEVINE_UUID,
+                        FrameworkMediaDrm.DEFAULT_PROVIDER)
+                    .setMultiSession(true)
+                    .build(drmCallback);
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "DRM build error: " + e.getMessage(), e);
         }
+
+        return DefaultDrmSessionManager.DRM_UNSUPPORTED;
+    }
+
+    // ── Hex utility ───────────────────────────────────────────────────
+    private byte[] hexToBytes(String hex) {
+        hex = hex.replaceAll("\\s+", "").replaceAll("^0[xX]", "");
+        if (hex.length() % 2 != 0) hex = "0" + hex;
+        byte[] d = new byte[hex.length() / 2];
+        for (int i = 0; i < d.length; i++)
+            d[i] = (byte) Integer.parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+        return d;
+    }
+
+    // ── Update info di custom_control ─────────────────────────────────
+    private void updateControlInfo(String name, String category, String logo, int idx) {
+        if (tvCtrlChannelName  != null && name != null) tvCtrlChannelName.setText(name);
+        if (tvCtrlCategoryName != null) tvCtrlCategoryName.setText(category != null ? category.toUpperCase() : "");
+        if (tvCtrlChNumber != null && !allChannels.isEmpty() && idx < allChannels.size())
+            tvCtrlChNumber.setText("CH " + String.format("%03d", allChannels.get(idx).getNumber()));
         if (ivCtrlLogo != null) {
             if (logo != null && !logo.isEmpty()) {
-                try {
-                    Glide.with(this).load(logo)
-                        .placeholder(R.drawable.ic_tv_placeholder)
-                        .error(R.drawable.ic_tv_placeholder)
-                        .into(ivCtrlLogo);
-                } catch (Exception e) {
-                    ivCtrlLogo.setImageResource(R.drawable.ic_tv_placeholder);
-                }
-            } else {
-                ivCtrlLogo.setImageResource(R.drawable.ic_tv_placeholder);
-            }
+                try { Glide.with(this).load(logo).placeholder(R.drawable.ic_tv_placeholder).error(R.drawable.ic_tv_placeholder).into(ivCtrlLogo); }
+                catch (Exception e) { ivCtrlLogo.setImageResource(R.drawable.ic_tv_placeholder); }
+            } else { ivCtrlLogo.setImageResource(R.drawable.ic_tv_placeholder); }
         }
     }
 
@@ -333,9 +431,8 @@ public class PlayerActivity extends AppCompatActivity {
         currentIndex = newIndex;
         updateControlInfo(ch.getName(), ch.getCategory(), ch.getLogo(), newIndex);
         showSwitchNotif(ch.getName());
-        player.stop();
-        playUrl(ch.getUrl(), ch.getDrmScheme(), ch.getDrmLicenseUrl(),
-                ch.getDrmKeyId(), ch.getDrmKey());
+        playChannel(ch.getUrl(), ch.getDrmScheme(), ch.getDrmLicenseUrl(),
+                    ch.getDrmKeyId(), ch.getDrmKey());
         updatePanelSelection(newIndex);
         hidePanel();
         hidePopups();
@@ -354,17 +451,11 @@ public class PlayerActivity extends AppCompatActivity {
         if (btnCtrlResolution != null) btnCtrlResolution.setText(label);
         if (player == null) return;
         if (maxW < 0) {
-            player.setTrackSelectionParameters(
-                player.getTrackSelectionParameters().buildUpon()
-                    .clearOverrides()
-                    .setMaxVideoSize(Integer.MAX_VALUE, Integer.MAX_VALUE)
-                    .build());
+            player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
+                .clearOverrides().setMaxVideoSize(Integer.MAX_VALUE, Integer.MAX_VALUE).build());
         } else {
-            player.setTrackSelectionParameters(
-                player.getTrackSelectionParameters().buildUpon()
-                    .clearOverrides()
-                    .setMaxVideoSize(maxW, maxH)
-                    .build());
+            player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
+                .clearOverrides().setMaxVideoSize(maxW, maxH).build());
         }
         Toast.makeText(this, "Resolusi: " + label, Toast.LENGTH_SHORT).show();
     }
@@ -383,16 +474,11 @@ public class PlayerActivity extends AppCompatActivity {
 
     private void filterPanelChannels(String query) {
         filteredList.clear();
-        if (query == null || query.trim().isEmpty()) {
-            filteredList.addAll(allChannels);
-        } else {
-            String q = query.toLowerCase();
-            for (Channel ch : allChannels) {
-                if (ch.getName().toLowerCase().contains(q) ||
-                    ch.getCategory().toLowerCase().contains(q))
-                    filteredList.add(ch);
-            }
-        }
+        if (query == null || query.trim().isEmpty()) filteredList.addAll(allChannels);
+        else { String q = query.toLowerCase();
+            for (Channel ch : allChannels)
+                if (ch.getName().toLowerCase().contains(q) || ch.getCategory().toLowerCase().contains(q))
+                    filteredList.add(ch); }
         if (panelAdapter != null) panelAdapter.notifyDataSetChanged();
     }
 
@@ -400,30 +486,25 @@ public class PlayerActivity extends AppCompatActivity {
         if (panelAdapter != null) {
             panelAdapter.setActiveIndex(idx);
             if (rvPanelChannels != null)
-                rvPanelChannels.scrollToPosition(Math.min(idx, filteredList.size() - 1));
+                rvPanelChannels.scrollToPosition(Math.min(idx, filteredList.size()-1));
         }
     }
 
     private void togglePanel() {
         if (panelChannelList == null) return;
-        boolean visible = panelChannelList.getVisibility() == View.VISIBLE;
-        panelChannelList.setVisibility(visible ? View.GONE : View.VISIBLE);
-        if (!visible) playerView.showController();
+        boolean vis = panelChannelList.getVisibility() == View.VISIBLE;
+        panelChannelList.setVisibility(vis ? View.GONE : View.VISIBLE);
+        if (!vis) playerView.showController();
         hidePopups();
     }
 
-    private void hidePanel() {
-        if (panelChannelList != null) panelChannelList.setVisibility(View.GONE);
-    }
+    private void hidePanel() { if (panelChannelList != null) panelChannelList.setVisibility(View.GONE); }
 
     private void togglePopup(View popup) {
         if (popup == null) return;
         boolean showing = popup.getVisibility() == View.VISIBLE;
         hidePopups();
-        if (!showing) {
-            popup.setVisibility(View.VISIBLE);
-            playerView.showController(); // pastikan controller tetap muncul saat popup terbuka
-        }
+        if (!showing) { popup.setVisibility(View.VISIBLE); playerView.showController(); }
     }
 
     private void hidePopups() {
@@ -436,130 +517,34 @@ public class PlayerActivity extends AppCompatActivity {
         tvChannelSwitchNotif.setText("▶  " + name);
         tvChannelSwitchNotif.setVisibility(View.VISIBLE);
         if (hideSwitchNotif != null) handler.removeCallbacks(hideSwitchNotif);
-        hideSwitchNotif = () -> {
-            if (tvChannelSwitchNotif != null) tvChannelSwitchNotif.setVisibility(View.GONE);
-        };
+        hideSwitchNotif = () -> { if (tvChannelSwitchNotif != null) tvChannelSwitchNotif.setVisibility(View.GONE); };
         handler.postDelayed(hideSwitchNotif, 2500);
     }
 
-    // ── MediaItem ─────────────────────────────────────────────────────
-    private MediaItem buildMediaItem(String url, String drmScheme, String drmLicenseUrl,
-                                     String drmKeyId, String drmKey) {
-        String lower = url.toLowerCase();
-        String mimeType;
-        if      (lower.contains(".m3u8") || lower.contains("/hls/")) mimeType = MimeTypes.APPLICATION_M3U8;
-        else if (lower.contains(".mpd")  || lower.contains("/dash/")) mimeType = MimeTypes.APPLICATION_MPD;
-        else if (lower.startsWith("rtsp://"))                          mimeType = MimeTypes.APPLICATION_RTSP;
-        else                                                            mimeType = null;
-
-        boolean hasDrm = drmScheme != null && !drmScheme.trim().isEmpty();
-        if (hasDrm && !MimeTypes.APPLICATION_MPD.equals(mimeType)) mimeType = MimeTypes.APPLICATION_MPD;
-
-        MediaItem.Builder b = new MediaItem.Builder().setUri(Uri.parse(url));
-        if (mimeType != null) b.setMimeType(mimeType);
-        if (hasDrm) {
-            MediaItem.DrmConfiguration drm = buildDrm(drmScheme, drmLicenseUrl, drmKeyId, drmKey);
-            if (drm != null) b.setDrmConfiguration(drm);
-        }
-        return b.build();
-    }
-
-    private MediaItem.DrmConfiguration buildDrm(String scheme, String licenseUrl,
-                                                  String keyIdHex, String keyHex) {
-        try {
-            UUID uuid = getDrmUuid(scheme);
-            MediaItem.DrmConfiguration.Builder b = new MediaItem.DrmConfiguration.Builder(uuid);
-
-            if ("widevine".equalsIgnoreCase(scheme) && licenseUrl != null) {
-                // ── Widevine: request ke license server ──────────────────
-                b.setLicenseUri(licenseUrl);
-
-            } else if ("clearkey".equalsIgnoreCase(scheme)
-                    && keyIdHex != null && keyHex != null) {
-                // ── ClearKey: inject JSON license langsung (tanpa network) ─
-                // Format JSON ClearKey sesuai W3C EME spec
-                byte[] kidBytes = hexToBytes(keyIdHex);
-                byte[] keyBytes = hexToBytes(keyHex);
-
-                // Base64url encoding (tanpa padding) sesuai spec
-                String kidB64 = Base64.encodeToString(kidBytes,
-                    Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
-                String keyB64 = Base64.encodeToString(keyBytes,
-                    Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
-
-                // JSON body yang akan dikembalikan sebagai "license"
-                String json = "{\"keys\":[{\"kty\":\"oct\",\"kid\":\"" + kidB64
-                    + "\",\"k\":\"" + keyB64 + "\"}],\"type\":\"temporary\"}";
-
-                // Encode JSON sebagai data URI — Media3 akan "fetch" ini sebagai license
-                String dataUri = "data:text/plain;base64,"
-                    + Base64.encodeToString(json.getBytes(Charset.forName("UTF-8")),
-                        Base64.NO_WRAP);
-                b.setLicenseUri(dataUri);
-
-                Log.d(TAG, "ClearKey JSON: " + json);
-
-            } else if ("clearkey".equalsIgnoreCase(scheme) && licenseUrl != null) {
-                // ── ClearKey: license URL langsung (format "keyid:key" atau URL server) ──
-                // Jika licenseUrl berisi "keyid:key" maka build inline
-                if (licenseUrl.contains(":") && !licenseUrl.startsWith("http")) {
-                    String[] parts = licenseUrl.split(":");
-                    if (parts.length == 2) {
-                        byte[] kidBytes = hexToBytes(parts[0].trim());
-                        byte[] keyBytes = hexToBytes(parts[1].trim());
-                        String kidB64 = Base64.encodeToString(kidBytes,
-                            Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
-                        String keyB64 = Base64.encodeToString(keyBytes,
-                            Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
-                        String json = "{\"keys\":[{\"kty\":\"oct\",\"kid\":\"" + kidB64
-                            + "\",\"k\":\"" + keyB64 + "\"}],\"type\":\"temporary\"}";
-                        String dataUri = "data:text/plain;base64,"
-                            + Base64.encodeToString(json.getBytes(Charset.forName("UTF-8")), Base64.NO_WRAP);
-                        b.setLicenseUri(dataUri);
-                    }
-                } else {
-                    b.setLicenseUri(licenseUrl);
-                }
-            }
-
-            return b.build();
-        } catch (Exception e) {
-            Log.e(TAG, "DRM config error: " + e.getMessage(), e);
-            return null;
-        }
-    }
-
-    private UUID getDrmUuid(String s) {
-        if (s == null) return C.WIDEVINE_UUID;
-        switch (s.toLowerCase()) {
-            case "clearkey":  return C.CLEARKEY_UUID;
-            case "playready": return C.PLAYREADY_UUID;
-            default:          return C.WIDEVINE_UUID;
-        }
-    }
-
-    private byte[] hexToBytes(String hex) {
-        hex = hex.replaceAll("\\s+", "").replaceAll("^0x", "");
-        if (hex.length() % 2 != 0) hex = "0" + hex;
-        byte[] d = new byte[hex.length() / 2];
-        for (int i = 0; i < d.length; i++)
-            d[i] = (byte) Integer.parseInt(hex.substring(i * 2, i * 2 + 2), 16);
-        return d;
-    }
-
+    // ── Error messages ─────────────────────────────────────────────────
     private String getErrorMessage(PlaybackException e) {
         switch (e.errorCode) {
             case PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED:   return "Tidak ada koneksi";
             case PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT:  return "Koneksi timeout";
             case PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS:             return "Server tidak merespons";
             case PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED:  return "Format tidak didukung";
-            case PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED:         return "DRM tidak didukung";
+            case PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED:         return "DRM tidak didukung perangkat";
+            case PlaybackException.ERROR_CODE_DRM_PROVISIONING_FAILED:        return "Gagal provisioning DRM";
+            case PlaybackException.ERROR_CODE_DRM_CONTENT_ERROR:              return "Konten DRM error — cek key";
             case PlaybackException.ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED: return "Gagal ambil lisensi DRM";
-            default: return "Error (" + e.errorCode + ")";
+            default: return "Error memutar channel (kode: " + e.errorCode + ")";
         }
     }
 
-    // ── Key events ────────────────────────────────────────────────────
+    // ── Status overlay ─────────────────────────────────────────────────
+    private void showStatus(String msg, boolean spin) {
+        if (overlayStatus != null) overlayStatus.setVisibility(View.VISIBLE);
+        if (tvStatus != null) tvStatus.setText(msg);
+        if (progressBuffering != null) progressBuffering.setVisibility(spin ? View.VISIBLE : View.GONE);
+    }
+    private void hideStatus() { if (overlayStatus != null) overlayStatus.setVisibility(View.GONE); }
+
+    // ── Key events ─────────────────────────────────────────────────────
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         switch (keyCode) {
@@ -578,21 +563,9 @@ public class PlayerActivity extends AppCompatActivity {
                 switchChannelRelative(1); return true;
             case KeyEvent.KEYCODE_DPAD_CENTER:
             case KeyEvent.KEYCODE_ENTER:
-                if (playerView != null) playerView.showController();
-                return true;
+                if (playerView != null) playerView.showController(); return true;
         }
         return super.onKeyDown(keyCode, event);
-    }
-
-    // ── Status overlay ────────────────────────────────────────────────
-    private void showStatus(String msg, boolean spin) {
-        if (overlayStatus     != null) overlayStatus.setVisibility(View.VISIBLE);
-        if (tvStatus          != null) tvStatus.setText(msg);
-        if (progressBuffering != null) progressBuffering.setVisibility(spin ? View.VISIBLE : View.GONE);
-    }
-
-    private void hideStatus() {
-        if (overlayStatus != null) overlayStatus.setVisibility(View.GONE);
     }
 
     @Override protected void onPause()  { super.onPause();  if (player != null) player.pause(); }
@@ -607,11 +580,10 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    // Inner Adapter: Panel Channel List
+    // Inner class: Panel Channel List Adapter
     // ══════════════════════════════════════════════════════════════════
     static class PanelChannelAdapter extends RecyclerView.Adapter<PanelChannelAdapter.VH> {
         interface OnSelect { void onSelect(Channel ch, int idx); }
-
         private final List<Channel> list;
         private int activeIndex;
         private final OnSelect listener;
@@ -619,58 +591,34 @@ public class PlayerActivity extends AppCompatActivity {
         PanelChannelAdapter(List<Channel> list, int activeIndex, OnSelect l) {
             this.list = list; this.activeIndex = activeIndex; this.listener = l;
         }
-
         void setActiveIndex(int idx) {
             int old = activeIndex; activeIndex = idx;
             notifyItemChanged(old); notifyItemChanged(idx);
         }
-
         @Override
         public VH onCreateViewHolder(android.view.ViewGroup parent, int vt) {
             android.widget.LinearLayout row = new android.widget.LinearLayout(parent.getContext());
             row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
             row.setPadding(16, 0, 16, 0);
-            row.setLayoutParams(new RecyclerView.LayoutParams(
-                RecyclerView.LayoutParams.MATCH_PARENT, 58));
+            row.setLayoutParams(new RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, 58));
             row.setGravity(android.view.Gravity.CENTER_VERTICAL);
             row.setClickable(true); row.setFocusable(true);
-
-            TextView tvN = new TextView(parent.getContext());
-            tvN.setTextSize(10); tvN.setTextColor(0xFF7A8AAA); tvN.setMinWidth(44); tvN.setTag("n");
-            row.addView(tvN);
-
-            TextView tvT = new TextView(parent.getContext());
-            android.widget.LinearLayout.LayoutParams lp =
-                new android.widget.LinearLayout.LayoutParams(0,
-                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-            tvT.setLayoutParams(lp); tvT.setTextSize(13); tvT.setTextColor(0xFFF0F4FF);
-            tvT.setSingleLine(true); tvT.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            tvT.setTag("t"); row.addView(tvT);
-
-            TextView tvC = new TextView(parent.getContext());
-            tvC.setTextSize(10); tvC.setTextColor(0xFF7A8AAA); tvC.setTag("c");
-            row.addView(tvC);
+            TextView tvN = new TextView(parent.getContext()); tvN.setTextSize(10); tvN.setTextColor(0xFF7A8AAA); tvN.setMinWidth(44); tvN.setTag("n"); row.addView(tvN);
+            android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            TextView tvT = new TextView(parent.getContext()); tvT.setLayoutParams(lp); tvT.setTextSize(13); tvT.setTextColor(0xFFF0F4FF); tvT.setSingleLine(true); tvT.setEllipsize(android.text.TextUtils.TruncateAt.END); tvT.setTag("t"); row.addView(tvT);
+            TextView tvC = new TextView(parent.getContext()); tvC.setTextSize(10); tvC.setTextColor(0xFF7A8AAA); tvC.setTag("c"); row.addView(tvC);
             return new VH(row);
         }
-
         @Override
         public void onBindViewHolder(VH h, int pos) {
-            Channel ch = list.get(pos);
-            boolean active = pos == activeIndex;
+            Channel ch = list.get(pos); boolean active = pos == activeIndex;
             h.itemView.setBackgroundColor(active ? 0x1AFFD700 : 0x00000000);
-            TextView tvN = h.itemView.findViewWithTag("n");
-            TextView tvT = h.itemView.findViewWithTag("t");
-            TextView tvC = h.itemView.findViewWithTag("c");
+            TextView tvN = h.itemView.findViewWithTag("n"); TextView tvT = h.itemView.findViewWithTag("t"); TextView tvC = h.itemView.findViewWithTag("c");
             if (tvN != null) tvN.setText(String.format("%03d", ch.getNumber()));
-            if (tvT != null) {
-                tvT.setText(ch.getName());
-                tvT.setTextColor(active ? 0xFFFFD700 : 0xFFF0F4FF);
-                tvT.setTypeface(null, active ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
-            }
+            if (tvT != null) { tvT.setText(ch.getName()); tvT.setTextColor(active ? 0xFFFFD700 : 0xFFF0F4FF); tvT.setTypeface(null, active ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL); }
             if (tvC != null) tvC.setText(ch.getCategory());
             h.itemView.setOnClickListener(v -> { if (listener != null) listener.onSelect(ch, pos); });
         }
-
         @Override public int getItemCount() { return list.size(); }
         static class VH extends RecyclerView.ViewHolder { VH(View v) { super(v); } }
     }
