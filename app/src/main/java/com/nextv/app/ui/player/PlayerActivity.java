@@ -6,6 +6,7 @@ import android.os.Handler;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -31,7 +32,10 @@ public class PlayerActivity extends AppCompatActivity {
     private TextView tvChannelName, tvStatus;
     private ImageView ivChannelLogo;
     private View overlayInfo;
-    private Handler handler = new Handler();
+    private View overlayStatus;
+    private ProgressBar progressBuffering;
+
+    private final Handler handler = new Handler();
     private Runnable hideOverlayRunnable;
 
     @Override
@@ -39,52 +43,54 @@ public class PlayerActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_player);
 
-        String channelName = getIntent().getStringExtra(EXTRA_CHANNEL_NAME);
-        String channelUrl  = getIntent().getStringExtra(EXTRA_CHANNEL_URL);
-        String channelLogo = getIntent().getStringExtra(EXTRA_CHANNEL_LOGO);
+        String name = getIntent().getStringExtra(EXTRA_CHANNEL_NAME);
+        String url  = getIntent().getStringExtra(EXTRA_CHANNEL_URL);
+        String logo = getIntent().getStringExtra(EXTRA_CHANNEL_LOGO);
 
-        initViews(channelName, channelLogo);
-        initPlayer(channelUrl, channelName);
+        initViews(name, logo);
+        initPlayer(url);
     }
 
     private void initViews(String name, String logo) {
-        playerView    = findViewById(R.id.player_view);
-        tvChannelName = findViewById(R.id.tv_channel_name);
-        tvStatus      = findViewById(R.id.tv_status);
-        ivChannelLogo = findViewById(R.id.iv_channel_logo);
-        overlayInfo   = findViewById(R.id.overlay_info);
+        playerView        = findViewById(R.id.player_view);
+        tvChannelName     = findViewById(R.id.tv_channel_name);
+        tvStatus          = findViewById(R.id.tv_status);
+        ivChannelLogo     = findViewById(R.id.iv_channel_logo);
+        overlayInfo       = findViewById(R.id.overlay_info);
+        overlayStatus     = findViewById(R.id.overlay_status);
+        progressBuffering = findViewById(R.id.progress_buffering);
 
-        if (name != null) tvChannelName.setText(name);
+        if (tvChannelName != null && name != null) tvChannelName.setText(name);
 
-        // Back button di overlay
-        View btnBack = findViewById(R.id.btn_back_player);
-        if (btnBack != null) btnBack.setOnClickListener(v -> finish());
-
-        if (logo != null && !logo.isEmpty()) {
+        if (ivChannelLogo != null && logo != null && !logo.isEmpty()) {
             Glide.with(this).load(logo)
                 .placeholder(R.drawable.ic_tv_placeholder)
+                .error(R.drawable.ic_tv_placeholder)
                 .into(ivChannelLogo);
         }
 
-        // Sembunyikan overlay setelah 4 detik
+        View btnBack = findViewById(R.id.btn_back_player);
+        if (btnBack != null) btnBack.setOnClickListener(v -> finish());
+
         showOverlay();
     }
 
-    private void initPlayer(String url, String name) {
+    private void initPlayer(String url) {
         if (url == null || url.isEmpty()) {
-            tvStatus.setText("❌ URL channel tidak valid");
+            setStatus("URL channel tidak valid", false);
             return;
         }
 
-        tvStatus.setText("⏳ Memuat stream...");
+        setStatus("Memuat stream...", true);
 
         player = new ExoPlayer.Builder(this).build();
-        playerView.setPlayer(player);
-        playerView.setUseController(false); // pakai custom overlay kita
+        if (playerView != null) {
+            playerView.setPlayer(player);
+            playerView.setUseController(false);
+        }
 
-        // Buat MediaItem berdasarkan tipe URL
         MediaItem mediaItem;
-        if (url.contains(".m3u8") || url.contains("hls")) {
+        if (url.contains(".m3u8")) {
             mediaItem = new MediaItem.Builder()
                 .setUri(Uri.parse(url))
                 .setMimeType(MimeTypes.APPLICATION_M3U8)
@@ -107,47 +113,49 @@ public class PlayerActivity extends AppCompatActivity {
             public void onPlaybackStateChanged(int state) {
                 switch (state) {
                     case Player.STATE_BUFFERING:
-                        tvStatus.setText("⏳ Buffering...");
-                        tvStatus.setVisibility(View.VISIBLE);
+                        setStatus("Buffering...", true);
                         break;
                     case Player.STATE_READY:
-                        tvStatus.setVisibility(View.GONE);
+                        hideStatus();
                         scheduleHideOverlay();
                         break;
                     case Player.STATE_ENDED:
-                        tvStatus.setText("⏹ Stream berakhir");
-                        tvStatus.setVisibility(View.VISIBLE);
-                        break;
-                    case Player.STATE_IDLE:
+                        setStatus("Stream berakhir", false);
                         break;
                 }
             }
 
             @Override
             public void onPlayerError(PlaybackException error) {
-                String msg = "❌ Error: ";
+                String msg;
                 switch (error.errorCode) {
                     case PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED:
-                        msg += "Tidak ada koneksi internet"; break;
+                        msg = "Tidak ada koneksi internet"; break;
                     case PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT:
-                        msg += "Koneksi timeout"; break;
-                    case PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED:
-                        msg += "Format stream tidak didukung"; break;
+                        msg = "Koneksi timeout"; break;
                     default:
-                        msg += "Gagal memuat channel";
+                        msg = "Gagal memuat channel";
                 }
-                tvStatus.setText(msg);
-                tvStatus.setVisibility(View.VISIBLE);
+                setStatus(msg, false);
                 Toast.makeText(PlayerActivity.this, msg, Toast.LENGTH_LONG).show();
             }
         });
     }
 
+    private void setStatus(String msg, boolean showProgress) {
+        if (overlayStatus    != null) overlayStatus.setVisibility(View.VISIBLE);
+        if (tvStatus         != null) tvStatus.setText(msg);
+        if (progressBuffering!= null)
+            progressBuffering.setVisibility(showProgress ? View.VISIBLE : View.GONE);
+    }
+
+    private void hideStatus() {
+        if (overlayStatus != null) overlayStatus.setVisibility(View.GONE);
+    }
+
     private void showOverlay() {
-        if (overlayInfo != null) {
-            overlayInfo.setVisibility(View.VISIBLE);
-            scheduleHideOverlay();
-        }
+        if (overlayInfo != null) overlayInfo.setVisibility(View.VISIBLE);
+        scheduleHideOverlay();
     }
 
     private void scheduleHideOverlay() {
@@ -160,37 +168,18 @@ public class PlayerActivity extends AppCompatActivity {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        // Tombol BACK = tutup player
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            finish();
-            return true;
-        }
-        // Semua tombol lain = tampilkan overlay
+        if (keyCode == KeyEvent.KEYCODE_BACK) { finish(); return true; }
         showOverlay();
         return super.onKeyDown(keyCode, event);
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (player != null) player.pause();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (player != null) player.play();
-    }
+    @Override protected void onPause()   { super.onPause();   if (player != null) player.pause(); }
+    @Override protected void onResume()  { super.onResume();  if (player != null) player.play(); }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (handler != null && hideOverlayRunnable != null) {
-            handler.removeCallbacks(hideOverlayRunnable);
-        }
-        if (player != null) {
-            player.release();
-            player = null;
-        }
+        if (hideOverlayRunnable != null) handler.removeCallbacks(hideOverlayRunnable);
+        if (player != null) { player.release(); player = null; }
     }
 }
