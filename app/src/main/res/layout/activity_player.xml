@@ -257,7 +257,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="top|center_horizontal"
         android:layout_marginTop="72dp"
-        android:background="@color/bg_status_overlay"
+        android:background="@drawable/bg_status_overlay"
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
         android:paddingTop="10dp"
@@ -277,7 +277,7 @@
         android:layout_gravity="center"
         android:orientation="vertical"
         android:gravity="center"
-        android:background="@color/bg_status_overlay"
+        android:background="@drawable/bg_status_overlay"
         android:padding="20dp"
         android:visibility="gone">
 
