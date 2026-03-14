@@ -7,7 +7,6 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
-# Kasih izin write untuk bisa buat Release
 permissions:
   contents: write
 
@@ -25,49 +24,29 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
-          cache: gradle
 
-      - name: Download gradle-wrapper.jar if missing
-        run: |
-          JAR=gradle/wrapper/gradle-wrapper.jar
-          if [ ! -f "$JAR" ] || [ ! -s "$JAR" ]; then
-            echo "Downloading gradle-wrapper.jar..."
-            mkdir -p gradle/wrapper
-            curl -L -o "$JAR" \
-              "https://github.com/gradle/gradle/raw/v7.5.0/gradle/wrapper/gradle-wrapper.jar"
-            echo "Downloaded: $(du -sh $JAR)"
-          else
-            echo "gradle-wrapper.jar already exists"
-          fi
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: "7.5"
 
-      - name: Grant execute permission for gradlew
+      - name: Fix gradlew permissions
         run: chmod +x gradlew
 
-      - name: Cache Gradle packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
       - name: Build Release APK
-        run: ./gradlew assembleRelease --no-daemon
+        run: gradle assembleRelease --no-daemon --stacktrace
+        
+      - name: Build Debug APK  
+        run: gradle assembleDebug --no-daemon
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon
-
-      # PERBAIKAN: pakai v4 bukan v3
-      - name: Upload Release APK artifact
+      - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
           name: NexTV-Release
           path: app/build/outputs/apk/release/*.apk
           retention-days: 30
 
-      - name: Upload Debug APK artifact
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: NexTV-Debug
@@ -80,8 +59,8 @@ jobs:
         run: |
           VER=$(grep 'versionName' app/build.gradle | head -1 | grep -oP '"\K[^"]+')
           TAG="v${VER}-$(date +'%Y%m%d%H%M')"
-          echo "VER=$VER"  >> $GITHUB_OUTPUT
-          echo "TAG=$TAG"  >> $GITHUB_OUTPUT
+          echo "VER=$VER" >> $GITHUB_OUTPUT
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
@@ -91,22 +70,11 @@ jobs:
           name: "NexTV ${{ steps.ver.outputs.TAG }}"
           body: |
             ## 📺 NexTV Android TV App
-
             Build otomatis · commit: `${{ github.sha }}`
-
             ### ⬇️ Download & Install
-            1. Download **NexTV-Release.apk** di bawah
-            2. Copy ke USB / transfer ke TV Box
-            3. Aktifkan **Unknown Sources** di Settings TV Box
-            4. Install APK → Buka NexTV
-            5. Channel otomatis ter-load dari server 🎉
-
-            ### Requirement
-            - Android 5.0+ (Lollipop ke atas)
-            - Koneksi internet
-          files: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/apk/debug/*.apk
+            1. Download **NexTV-Release.apk**
+            2. Transfer ke TV Box → Aktifkan Unknown Sources → Install 🎉
+          files: app/build/outputs/apk/release/*.apk
           draft: false
           prerelease: false
         env:
