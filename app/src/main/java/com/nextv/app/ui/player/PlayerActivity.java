@@ -55,38 +55,37 @@ public class PlayerActivity extends AppCompatActivity {
     public static final String EXTRA_DRM_KEY         = "drm_key";
     public static final String EXTRA_CHANNEL_INDEX   = "channel_index";
 
-    // ── Views ──────────────────────────────────────────────────────────
-    private ExoPlayer    player;
-    private PlayerView   playerView;
-    private View         overlayInfo;
-    private View         overlayStatus;
-    private View         overlayChannelSwitch;
-    private View         panelChannelList;
-    private View         popupResolution;
-    private View         popupAspect;
-    private View         btnPrev, btnNext;
-    private TextView     tvChannelName;
-    private TextView     tvChNumber;
-    private TextView     tvStatus;
-    private TextView     tvResolutionLabel;
-    private TextView     tvSwitchName;
-    private ImageView    ivChannelLogo;
-    private ProgressBar  progressBuffering;
+    // ── Player ─────────────────────────────────────────────────────────
+    private ExoPlayer  player;
+    private PlayerView playerView;
+
+    // ── Views dari custom_control (terintegrasi di PlayerView) ─────────
+    private TextView  tvCtrlChannelName;
+    private TextView  tvCtrlCategoryName;
+    private TextView  tvCtrlChNumber;
+    private ImageView ivCtrlLogo;
+    private TextView  btnCtrlResolution;  // label resolusi aktif
+
+    // ── Views dari activity_player.xml ────────────────────────────────
+    private View       panelChannelList;
+    private View       popupResolution;
+    private View       popupScreenMode;
+    private View       overlayStatus;
+    private TextView   tvStatus;
+    private ProgressBar progressBuffering;
+    private TextView   tvChannelSwitchNotif;
     private RecyclerView rvPanelChannels;
-    private EditText     etPanelSearch;
+    private EditText   etPanelSearch;
 
     // ── State ──────────────────────────────────────────────────────────
     private Handler  handler;
-    private Runnable hideOverlay;
     private Runnable hideSwitchNotif;
     private boolean  playerInitialized = false;
 
-    private List<Channel> allChannels   = new ArrayList<>();
-    private List<Channel> filteredList  = new ArrayList<>();
-    private int           currentIndex  = 0;   // index channel aktif di allChannels
-    private String        currentAspect = "fit";
+    private List<Channel> allChannels  = new ArrayList<>();
+    private List<Channel> filteredList = new ArrayList<>();
+    private int           currentIndex = 0;
 
-    // Adapter ringan untuk panel channel
     private PanelChannelAdapter panelAdapter;
 
     // ── Lifecycle ──────────────────────────────────────────────────────
@@ -94,76 +93,99 @@ public class PlayerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        // Fullscreen
+        getWindow().getDecorView().setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_FULLSCREEN |
+            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         setContentView(R.layout.activity_player);
 
         handler = new Handler(Looper.getMainLooper());
-
         currentIndex = getIntent().getIntExtra(EXTRA_CHANNEL_INDEX, 0);
 
         bindViews();
-        setupButtons();
-        setupPanelSearch();
+        setupPopupsAndPanel();
         loadChannelsAndPlay();
     }
 
     private void bindViews() {
-        playerView           = findViewById(R.id.player_view);
-        overlayInfo          = findViewById(R.id.overlay_info);
-        overlayStatus        = findViewById(R.id.overlay_status);
-        overlayChannelSwitch = findViewById(R.id.overlay_channel_switch);
+        playerView = findViewById(R.id.player_view);
         panelChannelList     = findViewById(R.id.panel_channel_list);
         popupResolution      = findViewById(R.id.popup_resolution);
-        popupAspect          = findViewById(R.id.popup_aspect);
-        btnPrev              = findViewById(R.id.btn_prev_channel);
-        btnNext              = findViewById(R.id.btn_next_channel);
-        tvChannelName        = findViewById(R.id.tv_channel_name);
-        tvChNumber           = findViewById(R.id.tv_ch_number);
+        popupScreenMode      = findViewById(R.id.popup_screen_mode);
+        overlayStatus        = findViewById(R.id.overlay_status);
         tvStatus             = findViewById(R.id.tv_status);
-        tvResolutionLabel    = findViewById(R.id.tv_resolution_label);
-        tvSwitchName         = findViewById(R.id.tv_switch_name);
-        ivChannelLogo        = findViewById(R.id.iv_channel_logo);
         progressBuffering    = findViewById(R.id.progress_buffering);
+        tvChannelSwitchNotif = findViewById(R.id.tv_channel_switch_notif);
         rvPanelChannels      = findViewById(R.id.rv_panel_channels);
         etPanelSearch        = findViewById(R.id.et_panel_search);
+
+        // Views DALAM custom_control (terintegrasi di PlayerView)
+        // Harus dicari setelah PlayerView di-attach
+        // Gunakan handler post agar PlayerView sudah inflate controllernya
+        playerView.post(() -> {
+            tvCtrlChannelName  = playerView.findViewById(R.id.tv_ctrl_channel_name);
+            tvCtrlCategoryName = playerView.findViewById(R.id.tv_category_name);
+            tvCtrlChNumber     = playerView.findViewById(R.id.tv_ctrl_ch_number);
+            ivCtrlLogo         = playerView.findViewById(R.id.iv_ctrl_logo);
+            btnCtrlResolution  = playerView.findViewById(R.id.btn_ctrl_resolution);
+
+            // Tombol dalam custom_control
+            View btnExit = playerView.findViewById(R.id.btn_ctrl_exit);
+            if (btnExit != null) btnExit.setOnClickListener(v -> finish());
+
+            View btnPrev = playerView.findViewById(R.id.btn_ctrl_prev);
+            if (btnPrev != null) btnPrev.setOnClickListener(v -> switchChannelRelative(-1));
+
+            View btnNext = playerView.findViewById(R.id.btn_ctrl_next);
+            if (btnNext != null) btnNext.setOnClickListener(v -> switchChannelRelative(1));
+
+            if (btnCtrlResolution != null)
+                btnCtrlResolution.setOnClickListener(v -> togglePopup(popupResolution));
+
+            View btnScreenMode = playerView.findViewById(R.id.btn_ctrl_screen_mode);
+            if (btnScreenMode != null)
+                btnScreenMode.setOnClickListener(v -> togglePopup(popupScreenMode));
+
+            View btnList = playerView.findViewById(R.id.btn_ctrl_channel_list);
+            if (btnList != null) btnList.setOnClickListener(v -> togglePanel());
+
+            // Update info channel awal
+            String name = getIntent().getStringExtra(EXTRA_CHANNEL_NAME);
+            String logo = getIntent().getStringExtra(EXTRA_CHANNEL_LOGO);
+            updateControlInfo(name, null, logo, currentIndex);
+        });
     }
 
-    private void setupButtons() {
-        // Kembali
-        View btnBack = findViewById(R.id.btn_back_player);
-        if (btnBack != null) btnBack.setOnClickListener(v -> finish());
-
-        // Resolusi
-        View btnRes = findViewById(R.id.btn_resolution);
-        if (btnRes != null) btnRes.setOnClickListener(v -> togglePopup(popupResolution));
-
-        // Aspect ratio
-        View btnAspect = findViewById(R.id.btn_aspect);
-        if (btnAspect != null) btnAspect.setOnClickListener(v -> togglePopup(popupAspect));
-
-        // Channel list panel
-        View btnList = findViewById(R.id.btn_channel_list);
-        if (btnList != null) btnList.setOnClickListener(v -> togglePanel());
-
+    private void setupPopupsAndPanel() {
         // Tutup panel
         View btnClosePanel = findViewById(R.id.btn_close_panel);
         if (btnClosePanel != null) btnClosePanel.setOnClickListener(v -> hidePanel());
 
-        // Prev / Next channel
-        if (btnPrev != null) btnPrev.setOnClickListener(v -> switchChannelRelative(-1));
-        if (btnNext != null) btnNext.setOnClickListener(v -> switchChannelRelative(1));
+        // Search di panel
+        if (etPanelSearch != null) {
+            etPanelSearch.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int st, int c, int a) {}
+                @Override public void onTextChanged(CharSequence s, int st, int b, int c) {
+                    filterPanelChannels(s.toString());
+                }
+                @Override public void afterTextChanged(Editable s) {}
+            });
+        }
 
-        // ── Resolusi options ──
+        // Resolusi
         setupResOption(R.id.res_auto,  "AUTO",  -1, -1);
         setupResOption(R.id.res_1080,  "1080p", 1920, 1080);
         setupResOption(R.id.res_720,   "720p",  1280, 720);
         setupResOption(R.id.res_480,   "480p",  854,  480);
         setupResOption(R.id.res_360,   "360p",  640,  360);
 
-        // ── Aspect ratio options ──
-        setupAspectOption(R.id.aspect_fit,     "fit",     "▣  Fit");
-        setupAspectOption(R.id.aspect_fill,    "fill",    "⬛  Fill");
-        setupAspectOption(R.id.aspect_stretch, "stretch", "↔  Stretch");
-        setupAspectOption(R.id.aspect_zoom,    "zoom",    "🔍  Zoom");
+        // Ukuran layar
+        setupScreenMode(R.id.screen_fit,          AspectRatioFrameLayout.RESIZE_MODE_FIT,          "AUTO");
+        setupScreenMode(R.id.screen_fixed_width,  AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH,  "AUTO");
+        setupScreenMode(R.id.screen_fixed_height, AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT, "AUTO");
+        setupScreenMode(R.id.screen_fill,         AspectRatioFrameLayout.RESIZE_MODE_FILL,         "AUTO");
+        setupScreenMode(R.id.screen_zoom,         AspectRatioFrameLayout.RESIZE_MODE_ZOOM,         "AUTO");
     }
 
     private void setupResOption(int viewId, String label, int w, int h) {
@@ -175,102 +197,73 @@ public class PlayerActivity extends AppCompatActivity {
         });
     }
 
-    private void setupAspectOption(int viewId, String mode, String label) {
+    private void setupScreenMode(int viewId, int mode, String ignored) {
         TextView tv = findViewById(viewId);
         if (tv == null) return;
         tv.setOnClickListener(v -> {
-            applyAspect(mode);
+            if (playerView != null) playerView.setResizeMode(mode);
             hidePopups();
-            // Update ikon tombol aspect
-            TextView icon = findViewById(R.id.tv_aspect_icon);
-            if (icon != null) icon.setText(label.substring(0, 1));
+            String label = tv.getText().toString().replaceAll("^[^A-Za-z]+\\s*", "");
+            Toast.makeText(this, "Layar: " + label, Toast.LENGTH_SHORT).show();
         });
     }
 
-    private void setupPanelSearch() {
-        if (etPanelSearch == null) return;
-        etPanelSearch.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int st, int c, int a) {}
-            @Override public void onTextChanged(CharSequence s, int st, int b, int c) {
-                filterPanelChannels(s.toString());
-            }
-            @Override public void afterTextChanged(Editable s) {}
-        });
-    }
-
-    // ── Load semua channel lalu mulai play ────────────────────────────
+    // ── Load channels + play ───────────────────────────────────────────
     private void loadChannelsAndPlay() {
-        showStatus("Memuat channel...", true);
-
-        // Ambil data channel dari intent dulu (langsung play)
-        String name          = getIntent().getStringExtra(EXTRA_CHANNEL_NAME);
         String url           = getIntent().getStringExtra(EXTRA_CHANNEL_URL);
-        String logo          = getIntent().getStringExtra(EXTRA_CHANNEL_LOGO);
         String drmScheme     = getIntent().getStringExtra(EXTRA_DRM_SCHEME);
         String drmLicenseUrl = getIntent().getStringExtra(EXTRA_DRM_LICENSE_URL);
         String drmKeyId      = getIntent().getStringExtra(EXTRA_DRM_KEY_ID);
         String drmKey        = getIntent().getStringExtra(EXTRA_DRM_KEY);
 
-        setupPlayerUI(name, logo);
         initPlayer();
         playUrl(url, drmScheme, drmLicenseUrl, drmKeyId, drmKey);
 
-        // Load semua channel di background untuk panel & navigasi
+        // Load semua channel di background untuk panel navigasi
         ChannelRepository.getInstance(this).loadChannels(new ChannelRepository.Callback() {
             @Override
             public void onSuccess(List<Channel> channels) {
-                allChannels = channels;
+                allChannels  = channels;
                 filteredList = new ArrayList<>(channels);
                 setupPanelAdapter();
-                updateNavButtons();
-                // Update nomor channel
-                if (tvChNumber != null && currentIndex < channels.size()) {
+                // Update nomor & kategori dari data channel
+                if (currentIndex < channels.size()) {
                     Channel ch = channels.get(currentIndex);
-                    tvChNumber.setText("CH " + String.format("%03d", ch.getNumber()));
+                    updateControlInfo(ch.getName(), ch.getCategory(), ch.getLogo(), currentIndex);
                 }
             }
-            @Override public void onError(String msg) { /* abaikan, channel sudah diplay */ }
+            @Override public void onError(String msg) {}
         });
-    }
-
-    private void setupPlayerUI(String name, String logo) {
-        if (tvChannelName != null && name != null) tvChannelName.setText(name);
-        if (ivChannelLogo != null && logo != null && !logo.isEmpty()) {
-            try {
-                Glide.with(this).load(logo)
-                    .placeholder(R.drawable.ic_tv_placeholder)
-                    .error(R.drawable.ic_tv_placeholder)
-                    .into(ivChannelLogo);
-            } catch (Exception e) { /* abaikan */ }
-        }
-        showOverlay();
     }
 
     // ── ExoPlayer ─────────────────────────────────────────────────────
     private void initPlayer() {
-        if (player != null) { player.stop(); player.release(); player = null; }
+        if (player != null) { player.release(); player = null; }
 
-        DefaultHttpDataSource.Factory httpFactory =
-            new DefaultHttpDataSource.Factory()
-                .setUserAgent("NexTV/1.0")
-                .setConnectTimeoutMs(20_000)
-                .setReadTimeoutMs(20_000)
-                .setAllowCrossProtocolRedirects(true);
-
-        DefaultRenderersFactory renderersFactory =
-            new DefaultRenderersFactory(this)
-                .setExtensionRendererMode(
-                    DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER);
-
-        player = new ExoPlayer.Builder(this, renderersFactory)
+        player = new ExoPlayer.Builder(this,
+                new DefaultRenderersFactory(this)
+                    .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER))
             .setMediaSourceFactory(
-                new DefaultMediaSourceFactory(this).setDataSourceFactory(httpFactory))
+                new DefaultMediaSourceFactory(this)
+                    .setDataSourceFactory(
+                        new DefaultHttpDataSource.Factory()
+                            .setUserAgent("NexTV/1.0")
+                            .setConnectTimeoutMs(20_000)
+                            .setReadTimeoutMs(20_000)
+                            .setAllowCrossProtocolRedirects(true)))
             .build();
 
         if (playerView != null) {
             playerView.setPlayer(player);
-            playerView.setUseController(false);
+            // Controller show/hide dihandle oleh PlayerView secara otomatis
+            playerView.setControllerShowTimeoutMs(4000); // auto-hide 4 detik
+            playerView.setControllerHideOnTouch(true);
             playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);
+            // Listener untuk sinkronisasi popup dengan visibility controller
+            playerView.setControllerVisibilityListener(
+                (PlayerView.ControllerVisibilityListener) visibility -> {
+                    if (visibility != View.VISIBLE) hidePopups();
+                });
         }
 
         player.addListener(new Player.Listener() {
@@ -282,7 +275,6 @@ public class PlayerActivity extends AppCompatActivity {
                         break;
                     case Player.STATE_READY:
                         hideStatus();
-                        scheduleHideOverlay();
                         playerInitialized = true;
                         break;
                     case Player.STATE_ENDED:
@@ -290,12 +282,10 @@ public class PlayerActivity extends AppCompatActivity {
                         break;
                 }
             }
-
             @Override
             public void onPlayerError(PlaybackException error) {
-                String msg = getErrorMessage(error);
                 Log.e(TAG, "Error " + error.errorCode + ": " + error.getMessage());
-                showStatus(msg, false);
+                showStatus(getErrorMessage(error), false);
             }
         });
     }
@@ -305,68 +295,65 @@ public class PlayerActivity extends AppCompatActivity {
         if (url == null || url.trim().isEmpty()) {
             showStatus("URL tidak valid", false); return;
         }
-        showStatus("Memuat stream...", true);
         playerInitialized = false;
-        MediaItem item = buildMediaItem(url.trim(), drmScheme, drmLicenseUrl, drmKeyId, drmKey);
-        player.setMediaItem(item);
+        showStatus("Memuat...", true);
+        player.setMediaItem(buildMediaItem(url.trim(), drmScheme, drmLicenseUrl, drmKeyId, drmKey));
         player.prepare();
         player.setPlayWhenReady(true);
+    }
+
+    // ── Update info di dalam custom_control ───────────────────────────
+    private void updateControlInfo(String name, String category, String logo, int idx) {
+        if (tvCtrlChannelName != null && name != null)
+            tvCtrlChannelName.setText(name);
+        if (tvCtrlCategoryName != null)
+            tvCtrlCategoryName.setText(category != null ? category.toUpperCase() : "");
+        if (tvCtrlChNumber != null && idx < allChannels.size() && !allChannels.isEmpty()) {
+            Channel ch = allChannels.get(idx);
+            tvCtrlChNumber.setText("CH " + String.format("%03d", ch.getNumber()));
+        }
+        if (ivCtrlLogo != null) {
+            if (logo != null && !logo.isEmpty()) {
+                try {
+                    Glide.with(this).load(logo)
+                        .placeholder(R.drawable.ic_tv_placeholder)
+                        .error(R.drawable.ic_tv_placeholder)
+                        .into(ivCtrlLogo);
+                } catch (Exception e) {
+                    ivCtrlLogo.setImageResource(R.drawable.ic_tv_placeholder);
+                }
+            } else {
+                ivCtrlLogo.setImageResource(R.drawable.ic_tv_placeholder);
+            }
+        }
     }
 
     // ── Channel switching ─────────────────────────────────────────────
     private void switchToChannel(Channel ch, int newIndex) {
         currentIndex = newIndex;
-
-        // Update UI header
-        if (tvChannelName != null) tvChannelName.setText(ch.getName());
-        if (tvChNumber != null)
-            tvChNumber.setText("CH " + String.format("%03d", ch.getNumber()));
-        if (ivChannelLogo != null) {
-            if (!ch.getLogo().isEmpty()) {
-                try {
-                    Glide.with(this).load(ch.getLogo())
-                        .placeholder(R.drawable.ic_tv_placeholder)
-                        .error(R.drawable.ic_tv_placeholder)
-                        .into(ivChannelLogo);
-                } catch (Exception e) { ivChannelLogo.setImageResource(R.drawable.ic_tv_placeholder); }
-            } else {
-                ivChannelLogo.setImageResource(R.drawable.ic_tv_placeholder);
-            }
-        }
-
-        // Notifikasi switch
+        updateControlInfo(ch.getName(), ch.getCategory(), ch.getLogo(), newIndex);
         showSwitchNotif(ch.getName());
-
-        // Play channel baru
+        player.stop();
         playUrl(ch.getUrl(), ch.getDrmScheme(), ch.getDrmLicenseUrl(),
                 ch.getDrmKeyId(), ch.getDrmKey());
-
-        updateNavButtons();
         updatePanelSelection(newIndex);
         hidePanel();
+        hidePopups();
     }
 
     private void switchChannelRelative(int delta) {
         if (allChannels.isEmpty()) return;
-        int newIndex = currentIndex + delta;
-        if (newIndex < 0) newIndex = allChannels.size() - 1;
-        if (newIndex >= allChannels.size()) newIndex = 0;
-        switchToChannel(allChannels.get(newIndex), newIndex);
+        int newIdx = currentIndex + delta;
+        if (newIdx < 0) newIdx = allChannels.size() - 1;
+        if (newIdx >= allChannels.size()) newIdx = 0;
+        switchToChannel(allChannels.get(newIdx), newIdx);
     }
 
-    private void updateNavButtons() {
-        if (allChannels.isEmpty()) return;
-        if (btnPrev != null) btnPrev.setVisibility(View.VISIBLE);
-        if (btnNext != null) btnNext.setVisibility(View.VISIBLE);
-    }
-
-    // ── Resolusi (video track selection) ─────────────────────────────
+    // ── Resolusi ──────────────────────────────────────────────────────
     private void applyResolution(int maxW, int maxH, String label) {
-        if (tvResolutionLabel != null) tvResolutionLabel.setText(label);
+        if (btnCtrlResolution != null) btnCtrlResolution.setText(label);
         if (player == null) return;
-
         if (maxW < 0) {
-            // AUTO: hapus override → ExoPlayer pilih sendiri
             player.setTrackSelectionParameters(
                 player.getTrackSelectionParameters().buildUpon()
                     .clearOverrides()
@@ -382,34 +369,11 @@ public class PlayerActivity extends AppCompatActivity {
         Toast.makeText(this, "Resolusi: " + label, Toast.LENGTH_SHORT).show();
     }
 
-    // ── Aspect ratio / ukuran layar ───────────────────────────────────
-    private void applyAspect(String mode) {
-        if (playerView == null) return;
-        currentAspect = mode;
-        switch (mode) {
-            case "fill":
-                playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_ZOOM);
-                break;
-            case "stretch":
-                playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
-                break;
-            case "zoom":
-                playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT);
-                break;
-            default: // "fit"
-                playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);
-                break;
-        }
-        String label = mode.substring(0, 1).toUpperCase() + mode.substring(1);
-        Toast.makeText(this, "Ukuran layar: " + label, Toast.LENGTH_SHORT).show();
-    }
-
-    // ── Panel channel list ────────────────────────────────────────────
+    // ── Panel ─────────────────────────────────────────────────────────
     private void setupPanelAdapter() {
         panelAdapter = new PanelChannelAdapter(filteredList, currentIndex, (ch, idx) -> {
-            // Cari index asli di allChannels
-            int realIndex = allChannels.indexOf(ch);
-            switchToChannel(ch, realIndex >= 0 ? realIndex : idx);
+            int realIdx = allChannels.indexOf(ch);
+            switchToChannel(ch, realIdx >= 0 ? realIdx : idx);
         });
         if (rvPanelChannels != null) {
             rvPanelChannels.setLayoutManager(new LinearLayoutManager(this));
@@ -425,20 +389,18 @@ public class PlayerActivity extends AppCompatActivity {
             String q = query.toLowerCase();
             for (Channel ch : allChannels) {
                 if (ch.getName().toLowerCase().contains(q) ||
-                    ch.getCategory().toLowerCase().contains(q)) {
+                    ch.getCategory().toLowerCase().contains(q))
                     filteredList.add(ch);
-                }
             }
         }
         if (panelAdapter != null) panelAdapter.notifyDataSetChanged();
     }
 
-    private void updatePanelSelection(int newIndex) {
+    private void updatePanelSelection(int idx) {
         if (panelAdapter != null) {
-            panelAdapter.setActiveIndex(newIndex);
+            panelAdapter.setActiveIndex(idx);
             if (rvPanelChannels != null)
-                rvPanelChannels.scrollToPosition(
-                    Math.min(newIndex, filteredList.size() - 1));
+                rvPanelChannels.scrollToPosition(Math.min(idx, filteredList.size() - 1));
         }
     }
 
@@ -446,102 +408,130 @@ public class PlayerActivity extends AppCompatActivity {
         if (panelChannelList == null) return;
         boolean visible = panelChannelList.getVisibility() == View.VISIBLE;
         panelChannelList.setVisibility(visible ? View.GONE : View.VISIBLE);
+        if (!visible) playerView.showController();
         hidePopups();
-        if (!visible) showOverlay();
     }
 
     private void hidePanel() {
         if (panelChannelList != null) panelChannelList.setVisibility(View.GONE);
     }
 
-    // ── Popup helpers ─────────────────────────────────────────────────
     private void togglePopup(View popup) {
         if (popup == null) return;
         boolean showing = popup.getVisibility() == View.VISIBLE;
         hidePopups();
-        if (!showing) popup.setVisibility(View.VISIBLE);
-        showOverlay();
+        if (!showing) {
+            popup.setVisibility(View.VISIBLE);
+            playerView.showController(); // pastikan controller tetap muncul saat popup terbuka
+        }
     }
 
     private void hidePopups() {
         if (popupResolution != null) popupResolution.setVisibility(View.GONE);
-        if (popupAspect     != null) popupAspect.setVisibility(View.GONE);
+        if (popupScreenMode != null) popupScreenMode.setVisibility(View.GONE);
     }
 
-    // ── Notifikasi pindah channel ─────────────────────────────────────
     private void showSwitchNotif(String name) {
-        if (overlayChannelSwitch == null || tvSwitchName == null) return;
-        tvSwitchName.setText("▶  " + name);
-        overlayChannelSwitch.setVisibility(View.VISIBLE);
+        if (tvChannelSwitchNotif == null) return;
+        tvChannelSwitchNotif.setText("▶  " + name);
+        tvChannelSwitchNotif.setVisibility(View.VISIBLE);
         if (hideSwitchNotif != null) handler.removeCallbacks(hideSwitchNotif);
         hideSwitchNotif = () -> {
-            if (overlayChannelSwitch != null)
-                overlayChannelSwitch.setVisibility(View.GONE);
+            if (tvChannelSwitchNotif != null) tvChannelSwitchNotif.setVisibility(View.GONE);
         };
         handler.postDelayed(hideSwitchNotif, 2500);
     }
 
-    // ── MediaItem builder ─────────────────────────────────────────────
+    // ── MediaItem ─────────────────────────────────────────────────────
     private MediaItem buildMediaItem(String url, String drmScheme, String drmLicenseUrl,
                                      String drmKeyId, String drmKey) {
         String lower = url.toLowerCase();
         String mimeType;
-        if (lower.contains(".m3u8") || lower.contains("/hls/"))
-            mimeType = MimeTypes.APPLICATION_M3U8;
-        else if (lower.contains(".mpd") || lower.contains("/dash/"))
-            mimeType = MimeTypes.APPLICATION_MPD;
-        else if (lower.startsWith("rtsp://"))
-            mimeType = MimeTypes.APPLICATION_RTSP;
-        else
-            mimeType = null;
+        if      (lower.contains(".m3u8") || lower.contains("/hls/")) mimeType = MimeTypes.APPLICATION_M3U8;
+        else if (lower.contains(".mpd")  || lower.contains("/dash/")) mimeType = MimeTypes.APPLICATION_MPD;
+        else if (lower.startsWith("rtsp://"))                          mimeType = MimeTypes.APPLICATION_RTSP;
+        else                                                            mimeType = null;
 
         boolean hasDrm = drmScheme != null && !drmScheme.trim().isEmpty();
-        if (hasDrm && !MimeTypes.APPLICATION_MPD.equals(mimeType))
-            mimeType = MimeTypes.APPLICATION_MPD;
+        if (hasDrm && !MimeTypes.APPLICATION_MPD.equals(mimeType)) mimeType = MimeTypes.APPLICATION_MPD;
 
         MediaItem.Builder b = new MediaItem.Builder().setUri(Uri.parse(url));
         if (mimeType != null) b.setMimeType(mimeType);
-
         if (hasDrm) {
-            MediaItem.DrmConfiguration drm = buildDrmConfig(
-                getDrmUuid(drmScheme), drmScheme, drmLicenseUrl, drmKeyId, drmKey);
+            MediaItem.DrmConfiguration drm = buildDrm(drmScheme, drmLicenseUrl, drmKeyId, drmKey);
             if (drm != null) b.setDrmConfiguration(drm);
         }
         return b.build();
     }
 
-    private MediaItem.DrmConfiguration buildDrmConfig(UUID uuid, String scheme,
-            String licenseUrl, String keyIdHex, String keyHex) {
+    private MediaItem.DrmConfiguration buildDrm(String scheme, String licenseUrl,
+                                                  String keyIdHex, String keyHex) {
         try {
+            UUID uuid = getDrmUuid(scheme);
             MediaItem.DrmConfiguration.Builder b = new MediaItem.DrmConfiguration.Builder(uuid);
+
             if ("widevine".equalsIgnoreCase(scheme) && licenseUrl != null) {
+                // ── Widevine: request ke license server ──────────────────
                 b.setLicenseUri(licenseUrl);
+
             } else if ("clearkey".equalsIgnoreCase(scheme)
                     && keyIdHex != null && keyHex != null) {
-                byte[] kid = hexToBytes(keyIdHex);
-                byte[] key = hexToBytes(keyHex);
-                String kidB64 = Base64.encodeToString(kid,
-                    Base64.NO_WRAP | Base64.URL_SAFE | Base64.NO_PADDING);
-                String keyB64 = Base64.encodeToString(key,
-                    Base64.NO_WRAP | Base64.URL_SAFE | Base64.NO_PADDING);
-                String json = "{\"keys\":[{\"kty\":\"oct\",\"k\":\""
-                    + keyB64 + "\",\"kid\":\"" + kidB64 + "\"}],\"type\":\"temporary\"}";
+                // ── ClearKey: inject JSON license langsung (tanpa network) ─
+                // Format JSON ClearKey sesuai W3C EME spec
+                byte[] kidBytes = hexToBytes(keyIdHex);
+                byte[] keyBytes = hexToBytes(keyHex);
+
+                // Base64url encoding (tanpa padding) sesuai spec
+                String kidB64 = Base64.encodeToString(kidBytes,
+                    Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+                String keyB64 = Base64.encodeToString(keyBytes,
+                    Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+
+                // JSON body yang akan dikembalikan sebagai "license"
+                String json = "{\"keys\":[{\"kty\":\"oct\",\"kid\":\"" + kidB64
+                    + "\",\"k\":\"" + keyB64 + "\"}],\"type\":\"temporary\"}";
+
+                // Encode JSON sebagai data URI — Media3 akan "fetch" ini sebagai license
                 String dataUri = "data:text/plain;base64,"
-                    + Base64.encodeToString(
-                        json.getBytes(Charset.forName("UTF-8")), Base64.NO_WRAP);
+                    + Base64.encodeToString(json.getBytes(Charset.forName("UTF-8")),
+                        Base64.NO_WRAP);
                 b.setLicenseUri(dataUri);
+
+                Log.d(TAG, "ClearKey JSON: " + json);
+
+            } else if ("clearkey".equalsIgnoreCase(scheme) && licenseUrl != null) {
+                // ── ClearKey: license URL langsung (format "keyid:key" atau URL server) ──
+                // Jika licenseUrl berisi "keyid:key" maka build inline
+                if (licenseUrl.contains(":") && !licenseUrl.startsWith("http")) {
+                    String[] parts = licenseUrl.split(":");
+                    if (parts.length == 2) {
+                        byte[] kidBytes = hexToBytes(parts[0].trim());
+                        byte[] keyBytes = hexToBytes(parts[1].trim());
+                        String kidB64 = Base64.encodeToString(kidBytes,
+                            Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+                        String keyB64 = Base64.encodeToString(keyBytes,
+                            Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+                        String json = "{\"keys\":[{\"kty\":\"oct\",\"kid\":\"" + kidB64
+                            + "\",\"k\":\"" + keyB64 + "\"}],\"type\":\"temporary\"}";
+                        String dataUri = "data:text/plain;base64,"
+                            + Base64.encodeToString(json.getBytes(Charset.forName("UTF-8")), Base64.NO_WRAP);
+                        b.setLicenseUri(dataUri);
+                    }
+                } else {
+                    b.setLicenseUri(licenseUrl);
+                }
             }
+
             return b.build();
         } catch (Exception e) {
-            Log.e(TAG, "DRM config error", e);
+            Log.e(TAG, "DRM config error: " + e.getMessage(), e);
             return null;
         }
     }
 
-    private UUID getDrmUuid(String scheme) {
-        if (scheme == null) return C.WIDEVINE_UUID;
-        switch (scheme.toLowerCase()) {
-            case "widevine":  return C.WIDEVINE_UUID;
+    private UUID getDrmUuid(String s) {
+        if (s == null) return C.WIDEVINE_UUID;
+        switch (s.toLowerCase()) {
             case "clearkey":  return C.CLEARKEY_UUID;
             case "playready": return C.PLAYREADY_UUID;
             default:          return C.WIDEVINE_UUID;
@@ -559,79 +549,50 @@ public class PlayerActivity extends AppCompatActivity {
 
     private String getErrorMessage(PlaybackException e) {
         switch (e.errorCode) {
-            case PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED:  return "Tidak ada koneksi internet";
-            case PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT: return "Koneksi timeout";
-            case PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS:            return "Server tidak merespons";
-            case PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED: return "Format tidak didukung";
-            case PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED:        return "DRM tidak didukung";
-            case PlaybackException.ERROR_CODE_DRM_PROVISIONING_FAILED:       return "Gagal provisioning DRM";
-            case PlaybackException.ERROR_CODE_DRM_CONTENT_ERROR:             return "Konten DRM error";
-            case PlaybackException.ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED:return "Gagal ambil lisensi DRM";
-            default: return "Gagal memutar (kode: " + e.errorCode + ")";
+            case PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED:   return "Tidak ada koneksi";
+            case PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT:  return "Koneksi timeout";
+            case PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS:             return "Server tidak merespons";
+            case PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED:  return "Format tidak didukung";
+            case PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED:         return "DRM tidak didukung";
+            case PlaybackException.ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED: return "Gagal ambil lisensi DRM";
+            default: return "Error (" + e.errorCode + ")";
         }
     }
 
-    // ── Key events (D-Pad TV) ─────────────────────────────────────────
+    // ── Key events ────────────────────────────────────────────────────
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        showOverlay();
         switch (keyCode) {
             case KeyEvent.KEYCODE_BACK:
-                if (panelChannelList != null &&
-                    panelChannelList.getVisibility() == View.VISIBLE) {
-                    hidePanel(); return true;
-                }
-                if (popupResolution != null &&
-                    popupResolution.getVisibility() == View.VISIBLE) {
-                    hidePopups(); return true;
-                }
-                if (popupAspect != null &&
-                    popupAspect.getVisibility() == View.VISIBLE) {
-                    hidePopups(); return true;
-                }
+                if (panelChannelList != null && panelChannelList.getVisibility() == View.VISIBLE) { hidePanel(); return true; }
+                if (popupResolution  != null && popupResolution.getVisibility()  == View.VISIBLE) { hidePopups(); return true; }
+                if (popupScreenMode  != null && popupScreenMode.getVisibility()  == View.VISIBLE) { hidePopups(); return true; }
                 finish(); return true;
-
             case KeyEvent.KEYCODE_DPAD_UP:
+            case KeyEvent.KEYCODE_CHANNEL_UP:
             case KeyEvent.KEYCODE_PAGE_UP:
                 switchChannelRelative(-1); return true;
-
             case KeyEvent.KEYCODE_DPAD_DOWN:
+            case KeyEvent.KEYCODE_CHANNEL_DOWN:
             case KeyEvent.KEYCODE_PAGE_DOWN:
                 switchChannelRelative(1); return true;
-
-            case KeyEvent.KEYCODE_CHANNEL_UP:
-                switchChannelRelative(-1); return true;
-
-            case KeyEvent.KEYCODE_CHANNEL_DOWN:
-                switchChannelRelative(1); return true;
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_ENTER:
+                if (playerView != null) playerView.showController();
+                return true;
         }
         return super.onKeyDown(keyCode, event);
     }
 
-    // ── UI helpers ────────────────────────────────────────────────────
-    private void showStatus(String msg, boolean spinning) {
+    // ── Status overlay ────────────────────────────────────────────────
+    private void showStatus(String msg, boolean spin) {
         if (overlayStatus     != null) overlayStatus.setVisibility(View.VISIBLE);
         if (tvStatus          != null) tvStatus.setText(msg);
-        if (progressBuffering != null)
-            progressBuffering.setVisibility(spinning ? View.VISIBLE : View.GONE);
+        if (progressBuffering != null) progressBuffering.setVisibility(spin ? View.VISIBLE : View.GONE);
     }
 
     private void hideStatus() {
         if (overlayStatus != null) overlayStatus.setVisibility(View.GONE);
-    }
-
-    private void showOverlay() {
-        if (overlayInfo != null) overlayInfo.setVisibility(View.VISIBLE);
-        scheduleHideOverlay();
-    }
-
-    private void scheduleHideOverlay() {
-        if (hideOverlay != null) handler.removeCallbacks(hideOverlay);
-        hideOverlay = () -> {
-            if (overlayInfo != null) overlayInfo.setVisibility(View.GONE);
-            hidePopups();
-        };
-        handler.postDelayed(hideOverlay, 5000);
     }
 
     @Override protected void onPause()  { super.onPause();  if (player != null) player.pause(); }
@@ -640,108 +601,77 @@ public class PlayerActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (handler != null) {
-            if (hideOverlay    != null) handler.removeCallbacks(hideOverlay);
-            if (hideSwitchNotif != null) handler.removeCallbacks(hideSwitchNotif);
-        }
-        if (player != null) { player.stop(); player.release(); player = null; }
+        if (handler != null && hideSwitchNotif != null) handler.removeCallbacks(hideSwitchNotif);
+        if (player != null) { player.release(); player = null; }
         if (playerView != null) playerView.setPlayer(null);
     }
 
     // ══════════════════════════════════════════════════════════════════
     // Inner Adapter: Panel Channel List
     // ══════════════════════════════════════════════════════════════════
-    static class PanelChannelAdapter
-            extends RecyclerView.Adapter<PanelChannelAdapter.VH> {
+    static class PanelChannelAdapter extends RecyclerView.Adapter<PanelChannelAdapter.VH> {
+        interface OnSelect { void onSelect(Channel ch, int idx); }
 
-        interface OnChannelSelect { void onSelect(Channel ch, int idx); }
+        private final List<Channel> list;
+        private int activeIndex;
+        private final OnSelect listener;
 
-        private final List<Channel>   list;
-        private int                   activeIndex;
-        private final OnChannelSelect listener;
-
-        PanelChannelAdapter(List<Channel> list, int activeIndex, OnChannelSelect l) {
-            this.list        = list;
-            this.activeIndex = activeIndex;
-            this.listener    = l;
+        PanelChannelAdapter(List<Channel> list, int activeIndex, OnSelect l) {
+            this.list = list; this.activeIndex = activeIndex; this.listener = l;
         }
 
         void setActiveIndex(int idx) {
-            int old = activeIndex;
-            activeIndex = idx;
-            notifyItemChanged(old);
-            notifyItemChanged(idx);
+            int old = activeIndex; activeIndex = idx;
+            notifyItemChanged(old); notifyItemChanged(idx);
         }
 
         @Override
-        public VH onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
+        public VH onCreateViewHolder(android.view.ViewGroup parent, int vt) {
             android.widget.LinearLayout row = new android.widget.LinearLayout(parent.getContext());
             row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
             row.setPadding(16, 0, 16, 0);
             row.setLayoutParams(new RecyclerView.LayoutParams(
-                RecyclerView.LayoutParams.MATCH_PARENT, 56));
+                RecyclerView.LayoutParams.MATCH_PARENT, 58));
             row.setGravity(android.view.Gravity.CENTER_VERTICAL);
-            row.setClickable(true);
-            row.setFocusable(true);
+            row.setClickable(true); row.setFocusable(true);
 
-            TextView tvNum = new TextView(parent.getContext());
-            tvNum.setTextSize(10);
-            tvNum.setTextColor(0xFF7A8AAA);
-            tvNum.setMinWidth(40);
-            tvNum.setTag("num");
-            row.addView(tvNum);
+            TextView tvN = new TextView(parent.getContext());
+            tvN.setTextSize(10); tvN.setTextColor(0xFF7A8AAA); tvN.setMinWidth(44); tvN.setTag("n");
+            row.addView(tvN);
 
-            TextView tvName = new TextView(parent.getContext());
+            TextView tvT = new TextView(parent.getContext());
             android.widget.LinearLayout.LayoutParams lp =
                 new android.widget.LinearLayout.LayoutParams(0,
                     android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-            tvName.setLayoutParams(lp);
-            tvName.setTextSize(13);
-            tvName.setTextColor(0xFFF0F4FF);
-            tvName.setSingleLine(true);
-            tvName.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            tvName.setTag("name");
-            row.addView(tvName);
+            tvT.setLayoutParams(lp); tvT.setTextSize(13); tvT.setTextColor(0xFFF0F4FF);
+            tvT.setSingleLine(true); tvT.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            tvT.setTag("t"); row.addView(tvT);
 
-            TextView tvCat = new TextView(parent.getContext());
-            tvCat.setTextSize(10);
-            tvCat.setTextColor(0xFF7A8AAA);
-            tvCat.setTag("cat");
-            row.addView(tvCat);
-
+            TextView tvC = new TextView(parent.getContext());
+            tvC.setTextSize(10); tvC.setTextColor(0xFF7A8AAA); tvC.setTag("c");
+            row.addView(tvC);
             return new VH(row);
         }
 
         @Override
-        public void onBindViewHolder(VH holder, int position) {
-            Channel ch = list.get(position);
-            boolean active = position == activeIndex;
-
-            holder.itemView.setBackgroundColor(active ? 0x1AFFD700 : 0x00000000);
-
-            TextView tvNum  = holder.itemView.findViewWithTag("num");
-            TextView tvName = holder.itemView.findViewWithTag("name");
-            TextView tvCat  = holder.itemView.findViewWithTag("cat");
-
-            if (tvNum  != null) tvNum.setText(String.format("%03d", ch.getNumber()));
-            if (tvName != null) {
-                tvName.setText(ch.getName());
-                tvName.setTextColor(active ? 0xFFFFD700 : 0xFFF0F4FF);
-                tvName.setTypeface(null, active
-                    ? android.graphics.Typeface.BOLD
-                    : android.graphics.Typeface.NORMAL);
+        public void onBindViewHolder(VH h, int pos) {
+            Channel ch = list.get(pos);
+            boolean active = pos == activeIndex;
+            h.itemView.setBackgroundColor(active ? 0x1AFFD700 : 0x00000000);
+            TextView tvN = h.itemView.findViewWithTag("n");
+            TextView tvT = h.itemView.findViewWithTag("t");
+            TextView tvC = h.itemView.findViewWithTag("c");
+            if (tvN != null) tvN.setText(String.format("%03d", ch.getNumber()));
+            if (tvT != null) {
+                tvT.setText(ch.getName());
+                tvT.setTextColor(active ? 0xFFFFD700 : 0xFFF0F4FF);
+                tvT.setTypeface(null, active ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
             }
-            if (tvCat  != null) tvCat.setText(ch.getCategory());
-
-            holder.itemView.setOnClickListener(v -> {
-                if (listener != null) listener.onSelect(ch, position);
-            });
+            if (tvC != null) tvC.setText(ch.getCategory());
+            h.itemView.setOnClickListener(v -> { if (listener != null) listener.onSelect(ch, pos); });
         }
 
         @Override public int getItemCount() { return list.size(); }
-
-        static class VH extends RecyclerView.ViewHolder {
-            VH(View v) { super(v); }
-        }
+        static class VH extends RecyclerView.ViewHolder { VH(View v) { super(v); } }
     }
 }
