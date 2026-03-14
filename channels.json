@@ -3,7 +3,7 @@
     "id": "rcti",
     "name": "RCTI",
     "url": "https://5d49f843c40c9.streamlock.net:1935/rcti/rcti/playlist.m3u8",
-    "logo": "",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/RCTI_logo_2019.svg/200px-RCTI_logo_2019.svg.png",
     "category": "Hiburan",
     "number": 1,
     "quality": "HD",
@@ -13,7 +13,7 @@
     "id": "sctv",
     "name": "SCTV",
     "url": "https://5d49f843c40c9.streamlock.net:1935/sctv/sctv/playlist.m3u8",
-    "logo": "",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/SCTV_logo.svg/200px-SCTV_logo.svg.png",
     "category": "Hiburan",
     "number": 2,
     "quality": "HD",
@@ -23,7 +23,7 @@
     "id": "indosiar",
     "name": "Indosiar",
     "url": "https://5d49f843c40c9.streamlock.net:1935/indosiar/indosiar/playlist.m3u8",
-    "logo": "",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Indosiar_logo.svg/200px-Indosiar_logo.svg.png",
     "category": "Hiburan",
     "number": 3,
     "quality": "HD",
@@ -70,12 +70,32 @@
     "is_live": true
   },
   {
+    "id": "gtv",
+    "name": "GTV",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/gtv/gtv/playlist.m3u8",
+    "logo": "",
+    "category": "Hiburan",
+    "number": 8,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "antv",
+    "name": "ANTV",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/antv/antv/playlist.m3u8",
+    "logo": "",
+    "category": "Hiburan",
+    "number": 9,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
     "id": "tvone",
     "name": "TV One",
     "url": "https://5d49f843c40c9.streamlock.net:1935/tvone/tvone/playlist.m3u8",
     "logo": "",
     "category": "Berita",
-    "number": 8,
+    "number": 10,
     "quality": "HD",
     "is_live": true
   },
@@ -85,7 +105,7 @@
     "url": "https://5d49f843c40c9.streamlock.net:1935/metrotv/metrotv/playlist.m3u8",
     "logo": "",
     "category": "Berita",
-    "number": 9,
+    "number": 11,
     "quality": "HD",
     "is_live": true
   },
@@ -95,7 +115,7 @@
     "url": "https://5d49f843c40c9.streamlock.net:1935/cnn/cnn/playlist.m3u8",
     "logo": "",
     "category": "Berita",
-    "number": 10,
+    "number": 12,
     "quality": "HD",
     "is_live": true
   },
@@ -105,7 +125,17 @@
     "url": "https://5d49f843c40c9.streamlock.net:1935/kompas/kompas/playlist.m3u8",
     "logo": "",
     "category": "Berita",
-    "number": 11,
+    "number": 13,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "iqna",
+    "name": "iNews",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/inews/inews/playlist.m3u8",
+    "logo": "",
+    "category": "Berita",
+    "number": 14,
     "quality": "HD",
     "is_live": true
   },
@@ -115,7 +145,7 @@
     "url": "https://5d49f843c40c9.streamlock.net:1935/bein1/bein1/playlist.m3u8",
     "logo": "",
     "category": "Olahraga",
-    "number": 12,
+    "number": 15,
     "quality": "FHD",
     "is_live": true
   },
@@ -125,8 +155,28 @@
     "url": "https://5d49f843c40c9.streamlock.net:1935/bein2/bein2/playlist.m3u8",
     "logo": "",
     "category": "Olahraga",
-    "number": 13,
+    "number": 16,
     "quality": "FHD",
+    "is_live": true
+  },
+  {
+    "id": "beinsports3",
+    "name": "beIN Sports 3",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/bein3/bein3/playlist.m3u8",
+    "logo": "",
+    "category": "Olahraga",
+    "number": 17,
+    "quality": "FHD",
+    "is_live": true
+  },
+  {
+    "id": "spotv",
+    "name": "SPOTV",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/spotv/spotv/playlist.m3u8",
+    "logo": "",
+    "category": "Olahraga",
+    "number": 18,
+    "quality": "HD",
     "is_live": true
   },
   {
@@ -135,7 +185,7 @@
     "url": "https://5d49f843c40c9.streamlock.net:1935/cartoon/cartoon/playlist.m3u8",
     "logo": "",
     "category": "Anak-anak",
-    "number": 14,
+    "number": 19,
     "quality": "SD",
     "is_live": true
   },
@@ -145,8 +195,108 @@
     "url": "https://5d49f843c40c9.streamlock.net:1935/nick/nick/playlist.m3u8",
     "logo": "",
     "category": "Anak-anak",
-    "number": 15,
+    "number": 20,
     "quality": "SD",
+    "is_live": true
+  },
+  {
+    "id": "disney",
+    "name": "Disney Channel",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/disney/disney/playlist.m3u8",
+    "logo": "",
+    "category": "Anak-anak",
+    "number": 21,
+    "quality": "SD",
+    "is_live": true
+  },
+  {
+    "id": "hbo",
+    "name": "HBO",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/hbo/hbo/playlist.m3u8",
+    "logo": "",
+    "category": "Film",
+    "number": 22,
+    "quality": "FHD",
+    "is_live": true
+  },
+  {
+    "id": "hbo2",
+    "name": "HBO 2",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/hbo2/hbo2/playlist.m3u8",
+    "logo": "",
+    "category": "Film",
+    "number": 23,
+    "quality": "FHD",
+    "is_live": true
+  },
+  {
+    "id": "foxmovies",
+    "name": "Fox Movies",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/foxmovies/foxmovies/playlist.m3u8",
+    "logo": "",
+    "category": "Film",
+    "number": 24,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "cinemax",
+    "name": "Cinemax",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/cinemax/cinemax/playlist.m3u8",
+    "logo": "",
+    "category": "Film",
+    "number": 25,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "natgeo",
+    "name": "National Geographic",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/natgeo/natgeo/playlist.m3u8",
+    "logo": "",
+    "category": "Dokumenter",
+    "number": 26,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "discovery",
+    "name": "Discovery Channel",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/discovery/discovery/playlist.m3u8",
+    "logo": "",
+    "category": "Dokumenter",
+    "number": 27,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "history",
+    "name": "History Channel",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/history/history/playlist.m3u8",
+    "logo": "",
+    "category": "Dokumenter",
+    "number": 28,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "mtv",
+    "name": "MTV",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/mtv/mtv/playlist.m3u8",
+    "logo": "",
+    "category": "Musik",
+    "number": 29,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "rvasia",
+    "name": "RV Asia",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/rvasia/rvasia/playlist.m3u8",
+    "logo": "",
+    "category": "Musik",
+    "number": 30,
+    "quality": "HD",
     "is_live": true
   }
 ]
