@@ -4,7 +4,7 @@
     android:id="@+id/card_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="5dp"
+    android:layout_margin="4dp"
     android:background="@drawable/bg_channel_card"
     android:clickable="true"
     android:focusable="true"
@@ -18,26 +18,26 @@
         <!-- Thumbnail / Logo area -->
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="88dp"
+            android:layout_height="90dp"
             android:background="@color/bg_panel">
 
             <!-- Channel Logo -->
             <ImageView
                 android:id="@+id/iv_logo"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
                 android:layout_gravity="center"
                 android:scaleType="fitCenter"
-                android:padding="6dp" />
+                android:padding="4dp" />
 
-            <!-- Gradient overlay bottom -->
+            <!-- Gradient overlay -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
                 android:layout_gravity="bottom"
                 android:background="@drawable/gradient_bottom" />
 
-            <!-- LIVE badge -->
+            <!-- LIVE badge (top-left) -->
             <LinearLayout
                 android:id="@+id/live_indicator"
                 android:layout_width="wrap_content"
@@ -47,8 +47,8 @@
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:background="@drawable/bg_live_badge"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
                 android:paddingTop="2dp"
                 android:paddingBottom="2dp"
                 android:visibility="visible">
@@ -57,17 +57,36 @@
                     android:layout_width="5dp"
                     android:layout_height="5dp"
                     android:background="@drawable/shape_live_dot"
-                    android:layout_marginEnd="4dp" />
+                    android:layout_marginEnd="3dp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="LIVE"
                     android:textColor="#FFFFFFFF"
-                    android:textSize="9sp"
+                    android:textSize="8sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.05" />
             </LinearLayout>
+
+            <!-- DRM badge (top-right) -->
+            <TextView
+                android:id="@+id/tv_drm_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|end"
+                android:layout_margin="6dp"
+                android:text="DRM"
+                android:textColor="@color/badge_drm_text"
+                android:textSize="8sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05"
+                android:background="@drawable/badge_drm"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:visibility="gone" />
 
         </FrameLayout>
 
@@ -81,17 +100,6 @@
             android:paddingTop="8dp"
             android:paddingBottom="10dp">
 
-            <!-- Channel number -->
-            <TextView
-                android:id="@+id/tv_channel_number"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="CH 001"
-                android:textColor="@color/text_dim"
-                android:textSize="10sp"
-                android:letterSpacing="0.1"
-                android:layout_marginBottom="3dp" />
-
             <!-- Channel name -->
             <TextView
                 android:id="@+id/tv_channel_name"
@@ -99,11 +107,11 @@
                 android:layout_height="wrap_content"
                 android:text="Channel Name"
                 android:textColor="@color/text_primary"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 android:textStyle="bold"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:layout_marginBottom="4dp" />
+                android:layout_marginBottom="5dp" />
 
             <!-- Category label -->
             <TextView
@@ -112,10 +120,10 @@
                 android:layout_height="wrap_content"
                 android:text="Umum"
                 android:textColor="@color/text_muted"
-                android:textSize="11sp"
+                android:textSize="10sp"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:layout_marginBottom="8dp" />
+                android:layout_marginBottom="7dp" />
 
             <!-- Footer: Quality badge -->
             <LinearLayout
@@ -130,7 +138,7 @@
                     android:layout_height="wrap_content"
                     android:text="HD"
                     android:textColor="@color/badge_hd_text"
-                    android:textSize="9sp"
+                    android:textSize="8sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.05"
                     android:background="@drawable/badge_hd"
@@ -140,7 +148,6 @@
                     android:paddingBottom="2dp" />
 
             </LinearLayout>
-
         </LinearLayout>
     </LinearLayout>
 
