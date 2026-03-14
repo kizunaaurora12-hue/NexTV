@@ -27,6 +27,7 @@ import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.drm.DefaultDrmSessionManager;
+import androidx.media3.exoplayer.drm.DrmSessionManager;
 import androidx.media3.exoplayer.drm.FrameworkMediaDrm;
 import androidx.media3.exoplayer.drm.HttpMediaDrmCallback;
 import androidx.media3.exoplayer.drm.LocalMediaDrmCallback;
@@ -250,11 +251,11 @@ public class PlayerActivity extends AppCompatActivity {
                 .setAllowCrossProtocolRedirects(true);
 
         // ── DRM Session Manager ────────────────────────────────────────
-        DefaultDrmSessionManager drmSessionManager = buildDrmSessionManager(
+        DrmSessionManager drmSessionManager = buildDrmSessionManager(
             drmScheme, drmLicenseUrl, drmKeyId, drmKey, httpFactory);
 
         // ── Media source factory ───────────────────────────────────────
-        final DefaultDrmSessionManager finalDrm = drmSessionManager;
+        final DrmSessionManager finalDrm = drmSessionManager;
         DefaultMediaSourceFactory mediaSourceFactory =
             new DefaultMediaSourceFactory(this)
                 .setDataSourceFactory(httpFactory)
@@ -325,7 +326,7 @@ public class PlayerActivity extends AppCompatActivity {
      *
      * Tidak ada DRM → DRM_UNSUPPORTED (pakai ini agar tidak crash)
      */
-    private DefaultDrmSessionManager buildDrmSessionManager(
+    private DrmSessionManager buildDrmSessionManager(
             String drmScheme, String drmLicenseUrl, String drmKeyId, String drmKey,
             DefaultHttpDataSource.Factory httpFactory) {
 
@@ -399,7 +400,7 @@ public class PlayerActivity extends AppCompatActivity {
             Log.e(TAG, "DRM build error: " + e.getMessage(), e);
         }
 
-        return DefaultDrmSessionManager.DRM_UNSUPPORTED;
+        return DrmSessionManager.DRM_UNSUPPORTED;
     }
 
     // ── Hex utility ───────────────────────────────────────────────────
