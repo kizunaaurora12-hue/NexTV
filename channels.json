@@ -1,0 +1,152 @@
+[
+  {
+    "id": "rcti",
+    "name": "RCTI",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/rcti/rcti/playlist.m3u8",
+    "logo": "",
+    "category": "Hiburan",
+    "number": 1,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "sctv",
+    "name": "SCTV",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/sctv/sctv/playlist.m3u8",
+    "logo": "",
+    "category": "Hiburan",
+    "number": 2,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "indosiar",
+    "name": "Indosiar",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/indosiar/indosiar/playlist.m3u8",
+    "logo": "",
+    "category": "Hiburan",
+    "number": 3,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "mnctv",
+    "name": "MNC TV",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/mnctv/mnctv/playlist.m3u8",
+    "logo": "",
+    "category": "Hiburan",
+    "number": 4,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "trans7",
+    "name": "Trans 7",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/trans7/trans7/playlist.m3u8",
+    "logo": "",
+    "category": "Hiburan",
+    "number": 5,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "transtv",
+    "name": "Trans TV",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/transtv/transtv/playlist.m3u8",
+    "logo": "",
+    "category": "Hiburan",
+    "number": 6,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "net",
+    "name": "Net TV",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/net/net/playlist.m3u8",
+    "logo": "",
+    "category": "Hiburan",
+    "number": 7,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "tvone",
+    "name": "TV One",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/tvone/tvone/playlist.m3u8",
+    "logo": "",
+    "category": "Berita",
+    "number": 8,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "metrotv",
+    "name": "Metro TV",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/metrotv/metrotv/playlist.m3u8",
+    "logo": "",
+    "category": "Berita",
+    "number": 9,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "cnn",
+    "name": "CNN Indonesia",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/cnn/cnn/playlist.m3u8",
+    "logo": "",
+    "category": "Berita",
+    "number": 10,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "kompas",
+    "name": "Kompas TV",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/kompas/kompas/playlist.m3u8",
+    "logo": "",
+    "category": "Berita",
+    "number": 11,
+    "quality": "HD",
+    "is_live": true
+  },
+  {
+    "id": "beinsports1",
+    "name": "beIN Sports 1",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/bein1/bein1/playlist.m3u8",
+    "logo": "",
+    "category": "Olahraga",
+    "number": 12,
+    "quality": "FHD",
+    "is_live": true
+  },
+  {
+    "id": "beinsports2",
+    "name": "beIN Sports 2",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/bein2/bein2/playlist.m3u8",
+    "logo": "",
+    "category": "Olahraga",
+    "number": 13,
+    "quality": "FHD",
+    "is_live": true
+  },
+  {
+    "id": "cartoon",
+    "name": "Cartoon Network",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/cartoon/cartoon/playlist.m3u8",
+    "logo": "",
+    "category": "Anak-anak",
+    "number": 14,
+    "quality": "SD",
+    "is_live": true
+  },
+  {
+    "id": "nickelodeon",
+    "name": "Nickelodeon",
+    "url": "https://5d49f843c40c9.streamlock.net:1935/nick/nick/playlist.m3u8",
+    "logo": "",
+    "category": "Anak-anak",
+    "number": 15,
+    "quality": "SD",
+    "is_live": true
+  }
+]

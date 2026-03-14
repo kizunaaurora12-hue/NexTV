@@ -1,0 +1,18 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# APK output (dibuild oleh GitHub Actions)
+*.apk
+*.aab
+
+# Keystore (jangan pernah commit keystore!)
+*.jks
+*.keystore
