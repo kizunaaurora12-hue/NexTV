@@ -23,32 +23,25 @@ import androidx.media3.common.Player;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.ExoPlayer;
-import androidx.media3.exoplayer.drm.DefaultDrmSessionManagerProvider;
-import androidx.media3.exoplayer.drm.DrmSessionManagerProvider;
-import androidx.media3.exoplayer.drm.FrameworkMediaDrm;
-import androidx.media3.exoplayer.drm.HttpMediaDrmCallback;
-import androidx.media3.exoplayer.drm.DefaultDrmSessionManager;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.ui.PlayerView;
 
 import com.bumptech.glide.Glide;
 import com.nextv.app.R;
-import com.nextv.app.data.Channel;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.UUID;
 
 public class PlayerActivity extends AppCompatActivity {
 
     private static final String TAG = "PlayerActivity";
 
-    public static final String EXTRA_CHANNEL_NAME        = "channel_name";
-    public static final String EXTRA_CHANNEL_URL         = "channel_url";
-    public static final String EXTRA_CHANNEL_LOGO        = "channel_logo";
-    public static final String EXTRA_DRM_SCHEME          = "drm_scheme";
-    public static final String EXTRA_DRM_LICENSE_URL     = "drm_license_url";
-    public static final String EXTRA_DRM_KEY_ID          = "drm_key_id";
-    public static final String EXTRA_DRM_KEY             = "drm_key";
+    public static final String EXTRA_CHANNEL_NAME    = "channel_name";
+    public static final String EXTRA_CHANNEL_URL     = "channel_url";
+    public static final String EXTRA_CHANNEL_LOGO    = "channel_logo";
+    public static final String EXTRA_DRM_SCHEME      = "drm_scheme";
+    public static final String EXTRA_DRM_LICENSE_URL = "drm_license_url";
+    public static final String EXTRA_DRM_KEY_ID      = "drm_key_id";
+    public static final String EXTRA_DRM_KEY         = "drm_key";
 
     private ExoPlayer    player;
     private PlayerView   playerView;
@@ -120,7 +113,6 @@ public class PlayerActivity extends AppCompatActivity {
         showStatus("Memuat stream...", true);
 
         try {
-            // ── Data source factory (mendukung header kustom) ──────────────
             DefaultHttpDataSource.Factory httpFactory =
                 new DefaultHttpDataSource.Factory()
                     .setUserAgent("NexTV/1.0")
@@ -128,29 +120,24 @@ public class PlayerActivity extends AppCompatActivity {
                     .setReadTimeoutMs(20_000)
                     .setAllowCrossProtocolRedirects(true);
 
-            // ── Player builder ─────────────────────────────────────────────
             DefaultRenderersFactory renderersFactory =
                 new DefaultRenderersFactory(this)
-                    .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER);
+                    .setExtensionRendererMode(
+                        DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER);
 
             DefaultMediaSourceFactory mediaSourceFactory =
                 new DefaultMediaSourceFactory(this)
                     .setDataSourceFactory(httpFactory);
 
-            // ── Terapkan DRM jika ada ──────────────────────────────────────
-            boolean hasDrm = drmScheme != null && !drmScheme.trim().isEmpty();
-
-            ExoPlayer.Builder builder = new ExoPlayer.Builder(this, renderersFactory)
-                .setMediaSourceFactory(mediaSourceFactory);
-
-            player = builder.build();
+            player = new ExoPlayer.Builder(this, renderersFactory)
+                .setMediaSourceFactory(mediaSourceFactory)
+                .build();
 
             if (playerView != null) {
                 playerView.setPlayer(player);
                 playerView.setUseController(false);
             }
 
-            // ── Bangun MediaItem ───────────────────────────────────────────
             MediaItem mediaItem = buildMediaItem(
                 url.trim(), drmScheme, drmLicenseUrl, drmKeyId, drmKey);
 
@@ -191,32 +178,20 @@ public class PlayerActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Bangun MediaItem dengan dukungan HLS, DASH, dan DASH+DRM.
-     *
-     * Format channels.json untuk DRM:
-     *   "drm_scheme": "widevine"            → Widevine
-     *   "drm_license_url": "https://..."    → License server URL
-     *
-     *   "drm_scheme": "clearkey"            → ClearKey (no server needed)
-     *   "drm_key_id": "aabbccdd..."         → hex key ID
-     *   "drm_key":    "11223344..."         → hex key value
-     */
     private MediaItem buildMediaItem(String url, String drmScheme,
                                      String drmLicenseUrl, String drmKeyId, String drmKey) {
         String lower = url.toLowerCase();
 
-        // Tentukan MIME type
         String mimeType;
-        if (lower.contains(".m3u8") || lower.contains("/hls/") || lower.contains("hls")) {
+        if (lower.contains(".m3u8") || lower.contains("/hls/")) {
             mimeType = MimeTypes.APPLICATION_M3U8;
         } else if (lower.contains(".mpd") || lower.contains("/dash/")
-                || lower.contains("dash") || lower.contains("manifest")) {
+                || lower.contains("manifest")) {
             mimeType = MimeTypes.APPLICATION_MPD;
-        } else if (lower.contains("rtsp://")) {
+        } else if (lower.startsWith("rtsp://")) {
             mimeType = MimeTypes.APPLICATION_RTSP;
         } else {
-            mimeType = null; // ExoPlayer detect otomatis
+            mimeType = null;
         }
 
         MediaItem.Builder itemBuilder = new MediaItem.Builder()
@@ -226,27 +201,25 @@ public class PlayerActivity extends AppCompatActivity {
             itemBuilder.setMimeType(mimeType);
         }
 
-        // Tambahkan konfigurasi DRM
         boolean hasDrm = drmScheme != null && !drmScheme.trim().isEmpty();
         if (hasDrm) {
+            UUID drmUuid = getDrmUuid(drmScheme);
             MediaItem.DrmConfiguration.Builder drmBuilder =
-                new MediaItem.DrmConfiguration.Builder(getDrmUuid(drmScheme));
+                new MediaItem.DrmConfiguration.Builder(drmUuid);
 
             if ("widevine".equalsIgnoreCase(drmScheme) && drmLicenseUrl != null) {
                 drmBuilder.setLicenseUri(drmLicenseUrl);
-                // Force L3 agar berjalan di semua perangkat
-                drmBuilder.forceDefaultLicenseUri();
             } else if ("clearkey".equalsIgnoreCase(drmScheme)
                     && drmKeyId != null && drmKey != null) {
-                // ClearKey: encode sebagai JSON inline URI
                 String clearKeyJson = buildClearKeyJson(drmKeyId, drmKey);
                 drmBuilder.setLicenseUri("data:text/plain;base64,"
                     + Base64.encodeToString(clearKeyJson.getBytes(), Base64.NO_WRAP));
             }
 
             itemBuilder.setDrmConfiguration(drmBuilder.build());
-            // Pastikan pakai DASH jika belum di-set
-            if (mimeType == null || mimeType.equals(MimeTypes.APPLICATION_M3U8)) {
+
+            // Pastikan DASH jika DRM aktif dan MIME belum di-set ke DASH
+            if (mimeType == null || MimeTypes.APPLICATION_M3U8.equals(mimeType)) {
                 itemBuilder.setMimeType(MimeTypes.APPLICATION_MPD);
             }
         }
@@ -254,8 +227,7 @@ public class PlayerActivity extends AppCompatActivity {
         return itemBuilder.build();
     }
 
-    /** Konversi nama scheme ke UUID yang dikenal ExoPlayer */
-    private java.util.UUID getDrmUuid(String scheme) {
+    private UUID getDrmUuid(String scheme) {
         if (scheme == null) return C.WIDEVINE_UUID;
         switch (scheme.toLowerCase()) {
             case "widevine":  return C.WIDEVINE_UUID;
@@ -265,7 +237,6 @@ public class PlayerActivity extends AppCompatActivity {
         }
     }
 
-    /** Bangun JSON ClearKey dari key ID dan key hex */
     private String buildClearKeyJson(String keyIdHex, String keyHex) {
         String kidB64 = Base64.encodeToString(hexToBytes(keyIdHex),
             Base64.NO_WRAP | Base64.URL_SAFE | Base64.NO_PADDING);
@@ -292,7 +263,7 @@ public class PlayerActivity extends AppCompatActivity {
             case PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT:
                 return "Koneksi timeout, coba lagi";
             case PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS:
-                return "Server channel tidak merespons (HTTP error)";
+                return "Server channel tidak merespons";
             case PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED:
                 return "Format stream tidak didukung";
             case PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED:
@@ -308,7 +279,7 @@ public class PlayerActivity extends AppCompatActivity {
         }
     }
 
-    // ── UI helpers ────────────────────────────────────────────────────────
+    // ── UI helpers ────────────────────────────────────────────────────
 
     private void showStatus(String msg, boolean spinning) {
         if (overlayStatus     != null) overlayStatus.setVisibility(View.VISIBLE);
@@ -341,8 +312,8 @@ public class PlayerActivity extends AppCompatActivity {
         return super.onKeyDown(keyCode, event);
     }
 
-    @Override protected void onPause()   { super.onPause();   if (player != null) player.pause(); }
-    @Override protected void onResume()  { super.onResume();  if (player != null && playerInitialized) player.play(); }
+    @Override protected void onPause()  { super.onPause();  if (player != null) player.pause(); }
+    @Override protected void onResume() { super.onResume(); if (player != null && playerInitialized) player.play(); }
 
     @Override
     protected void onDestroy() {
