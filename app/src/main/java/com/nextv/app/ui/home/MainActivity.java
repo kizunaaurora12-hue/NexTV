@@ -234,8 +234,6 @@ public class MainActivity extends AppCompatActivity
 
     private void updateTopBar(String cat) {
         if (tvActiveCategory == null) return;
-        String icon = SidebarAdapter.class.getName(); // just to reference it
-        // Build [ICON] NAMA
         String key = cat.toLowerCase().trim();
         String ico;
         if      (key.contains("semua"))        ico = "ALL";
