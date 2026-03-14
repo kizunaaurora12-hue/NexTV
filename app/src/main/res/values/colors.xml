@@ -1,17 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Background -->
-    <color name="bg_deep">#FF05070F</color>
-    <color name="bg_card">#FF0D1120</color>
-    <color name="bg_panel">#FF111827</color>
-    <color name="bg_hover">#FF1A2238</color>
+    <color name="bg_deep">#FF0A0C12</color>
+    <color name="bg_card">#FF131720</color>
+    <color name="bg_panel">#FF161B26</color>
+    <color name="bg_hover">#FF1E2535</color>
+    <color name="bg_sidebar">#FF0D1018</color>
+    <color name="bg_selected">#1AFFD700</color>
 
-    <!-- Accent -->
-    <color name="accent">#FF00D4FF</color>
-    <color name="accent_dark">#FF0099BB</color>
+    <!-- Accent gold (sesuai gambar) -->
+    <color name="accent">#FFFFD700</color>
+    <color name="accent_dark">#FFB8960A</color>
     <color name="accent2">#FFFF3D71</color>
     <color name="accent3">#FF7C3AED</color>
-    <color name="gold">#FFF59E0B</color>
+    <color name="gold">#FFFFD700</color>
+    <color name="gold_dim">#80FFD700</color>
 
     <!-- Text -->
     <color name="text_primary">#FFF0F4FF</color>
@@ -24,20 +27,31 @@
     <color name="status_buffering">#FFF59E0B</color>
 
     <!-- Border -->
-    <color name="border">#1F00D4FF</color>
-    <color name="border_active">#8000D4FF</color>
+    <color name="border">#1FFFD700</color>
+    <color name="border_active">#80FFD700</color>
 
     <!-- Quality badges -->
     <color name="badge_4k_bg">#267C3AED</color>
     <color name="badge_4k_text">#FFA78BFA</color>
     <color name="badge_fhd_bg">#261A5276</color>
     <color name="badge_fhd_text">#FF60A5FA</color>
-    <color name="badge_hd_bg">#2600D4FF</color>
-    <color name="badge_hd_text">#FF00D4FF</color>
+    <color name="badge_hd_bg">#26FFD700</color>
+    <color name="badge_hd_text">#FFFFD700</color>
     <color name="badge_sd_bg">#26FFFFFF</color>
     <color name="badge_sd_text">#FF7A8AAA</color>
 
-    <!-- Category chip colors -->
+    <!-- DRM badge -->
+    <color name="badge_drm_bg">#26FF3D71</color>
+    <color name="badge_drm_text">#FFFF6B6B</color>
+
+    <!-- LIVE badge -->
+    <color name="live_red">#FFFF3D3D</color>
+
+    <!-- PREMIUM badge -->
+    <color name="premium_bg">#33FFD700</color>
+    <color name="premium_text">#FFFFD700</color>
+
+    <!-- Category chip -->
     <color name="cat_color_1">#FF1D4ED8</color>
     <color name="cat_color_2">#FF7C3AED</color>
     <color name="cat_color_3">#FFD97706</color>
