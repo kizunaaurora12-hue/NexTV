@@ -43,7 +43,6 @@ jobs:
             -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US" \
             -noprompt
-          echo "Keystore generated: $(ls -lh $HOME/.android/debug.keystore)"
 
       - name: Fix gradlew permissions
         run: chmod +x gradlew
@@ -51,22 +50,12 @@ jobs:
       - name: Build Release APK
         run: gradle assembleRelease --no-daemon
 
-      - name: Build Debug APK
-        run: gradle assembleDebug --no-daemon
-
-      - name: Upload Release APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: NexTV-Release
           path: app/build/outputs/apk/release/*.apk
           retention-days: 30
-
-      - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: NexTV-Debug
-          path: app/build/outputs/apk/debug/*.apk
-          retention-days: 7
 
       - name: Get version & tag
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
@@ -74,7 +63,6 @@ jobs:
         run: |
           VER=$(grep 'versionName' app/build.gradle | head -1 | grep -oP '"\K[^"]+')
           TAG="v${VER}-$(date +'%Y%m%d%H%M')"
-          echo "VER=$VER" >> $GITHUB_OUTPUT
           echo "TAG=$TAG" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
@@ -85,9 +73,8 @@ jobs:
           name: "NexTV ${{ steps.ver.outputs.TAG }}"
           body: |
             ## 📺 NexTV Android TV App
-            Build otomatis · commit: `${{ github.sha }}`
             ### ⬇️ Download & Install
-            1. Download **NexTV-Release.apk**
+            1. Download **NexTV-v1.0.0.apk**
             2. Transfer ke TV Box → Aktifkan Unknown Sources → Install 🎉
           files: app/build/outputs/apk/release/*.apk
           draft: false
