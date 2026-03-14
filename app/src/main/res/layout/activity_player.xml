@@ -6,44 +6,44 @@
     android:background="#FF000000"
     android:keepScreenOn="true">
 
-    <!-- ExoPlayer View - fullscreen -->
+    <!-- ── VIDEO ────────────────────────────────────────────────── -->
     <androidx.media3.ui.PlayerView
         android:id="@+id/player_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:focusable="true" />
 
-    <!-- Overlay Info (auto-hide setelah 4 detik) -->
+    <!-- ── TOP OVERLAY (info + tombol) ─────────────────────────── -->
     <LinearLayout
         android:id="@+id/overlay_info"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="@drawable/gradient_overlay_top"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:paddingTop="20dp"
-        android:paddingBottom="24dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="20dp"
         android:visibility="visible">
 
-        <!-- Row: Logo + Channel Info -->
+        <!-- Row: Logo + Nama + Tombol-tombol -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
-            <!-- Channel Logo -->
+            <!-- Logo -->
             <ImageView
                 android:id="@+id/iv_channel_logo"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
                 android:scaleType="fitCenter"
                 android:background="@drawable/bg_logo_player"
-                android:padding="6dp"
-                android:layout_marginEnd="14dp" />
+                android:padding="5dp"
+                android:layout_marginEnd="12dp" />
 
-            <!-- Channel name + status -->
+            <!-- Nama + LIVE -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -54,68 +54,183 @@
                     android:id="@+id/tv_channel_name"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Channel Name"
+                    android:text="Channel"
                     android:textColor="@color/text_primary"
-                    android:textSize="20sp"
-                    android:textStyle="bold"
-                    android:fontFamily="sans-serif-condensed" />
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:layout_marginTop="4dp">
+                    android:layout_marginTop="3dp">
 
                     <View
                         android:layout_width="6dp"
                         android:layout_height="6dp"
                         android:background="@drawable/shape_live_dot"
-                        android:layout_marginEnd="6dp" />
+                        android:layout_marginEnd="5dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="LIVE"
                         android:textColor="#FFFF3D71"
-                        android:textSize="11sp"
+                        android:textSize="10sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.1" />
 
+                    <!-- Channel number label -->
+                    <TextView
+                        android:id="@+id/tv_ch_number"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textColor="@color/text_muted"
+                        android:textSize="10sp"
+                        android:layout_marginStart="8dp" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Back Button -->
+            <!-- ── ACTION BUTTONS ── -->
+
+            <!-- Resolusi -->
             <LinearLayout
-                android:id="@+id/btn_back_player"
+                android:id="@+id/btn_resolution"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="36dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:background="@drawable/bg_icon_btn"
-                android:padding="8dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginEnd="8dp">
+
+                <TextView
+                    android:id="@+id/tv_resolution_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="AUTO"
+                    android:textColor="@color/accent"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Ukuran layar / Aspect Ratio -->
+            <LinearLayout
+                android:id="@+id/btn_aspect"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@drawable/bg_icon_btn"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginEnd="8dp">
+
+                <TextView
+                    android:id="@+id/tv_aspect_icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⛶"
+                    android:textColor="@color/text_muted"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <!-- Channel List Panel Toggle -->
+            <LinearLayout
+                android:id="@+id/btn_channel_list"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:gravity="center"
+                android:background="@drawable/bg_icon_btn"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginEnd="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="☰"
+                    android:textColor="@color/text_muted"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <!-- Kembali -->
+            <LinearLayout
+                android:id="@+id/btn_back_player"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_icon_btn"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
                 android:clickable="true"
                 android:focusable="true">
 
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
                     android:src="@drawable/ic_back"
                     android:tint="@color/text_primary" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="  Kembali"
+                    android:text="  Keluar"
                     android:textColor="@color/text_primary"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
             </LinearLayout>
-
         </LinearLayout>
 
     </LinearLayout>
 
-    <!-- Status / Buffering overlay (tengah layar) -->
+    <!-- ── PREV / NEXT CHANNEL (kiri-kanan layar) ───────────────── -->
+    <LinearLayout
+        android:id="@+id/btn_prev_channel"
+        android:layout_width="48dp"
+        android:layout_height="80dp"
+        android:layout_gravity="center_vertical|start"
+        android:layout_marginStart="8dp"
+        android:gravity="center"
+        android:background="@drawable/bg_status_overlay"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="◀"
+            android:textColor="@color/text_primary"
+            android:textSize="20sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/btn_next_channel"
+        android:layout_width="48dp"
+        android:layout_height="80dp"
+        android:layout_gravity="center_vertical|end"
+        android:layout_marginEnd="8dp"
+        android:gravity="center"
+        android:background="@drawable/bg_status_overlay"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="▶"
+            android:textColor="@color/text_primary"
+            android:textSize="20sp" />
+    </LinearLayout>
+
+    <!-- ── STATUS / BUFFERING (tengah) ──────────────────────────── -->
     <LinearLayout
         android:id="@+id/overlay_status"
         android:layout_width="wrap_content"
@@ -143,7 +258,229 @@
             android:textSize="14sp"
             android:gravity="center"
             android:layout_marginTop="8dp" />
+    </LinearLayout>
 
+    <!-- ── PANEL KANAN: Daftar Channel ──────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/panel_channel_list"
+        android:layout_width="280dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="end"
+        android:orientation="vertical"
+        android:background="#E6050810"
+        android:visibility="gone">
+
+        <!-- Header panel -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="12dp"
+            android:background="@color/bg_panel">
+
+            <View
+                android:layout_width="3dp"
+                android:layout_height="18dp"
+                android:background="@color/accent"
+                android:layout_marginEnd="10dp" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="CHANNEL"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.1" />
+
+            <TextView
+                android:id="@+id/btn_close_panel"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:gravity="center"
+                android:text="✕"
+                android:textColor="@color/text_muted"
+                android:textSize="16sp"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
+
+        <!-- Search di dalam panel -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:background="@color/bg_card">
+
+            <EditText
+                android:id="@+id/et_panel_search"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@null"
+                android:hint="Cari channel…"
+                android:textColorHint="@color/text_dim"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp"
+                android:inputType="text"
+                android:singleLine="true" />
+        </LinearLayout>
+
+        <!-- Channel list RecyclerView -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_panel_channels"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:scrollbars="vertical" />
+    </LinearLayout>
+
+    <!-- ── POPUP RESOLUSI ────────────────────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/popup_resolution"
+        android:layout_width="160dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="60dp"
+        android:layout_marginEnd="130dp"
+        android:orientation="vertical"
+        android:background="@color/bg_panel"
+        android:elevation="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="RESOLUSI"
+            android:textColor="@color/text_muted"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.15"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="6dp" />
+
+        <TextView android:id="@+id/res_auto"
+            android:layout_width="match_parent" android:layout_height="44dp"
+            android:gravity="center_vertical" android:paddingStart="14dp"
+            android:text="⚡  Auto" android:textColor="@color/accent"
+            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/border" />
+
+        <TextView android:id="@+id/res_1080"
+            android:layout_width="match_parent" android:layout_height="44dp"
+            android:gravity="center_vertical" android:paddingStart="14dp"
+            android:text="🔹  1080p" android:textColor="@color/text_primary"
+            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+
+        <TextView android:id="@+id/res_720"
+            android:layout_width="match_parent" android:layout_height="44dp"
+            android:gravity="center_vertical" android:paddingStart="14dp"
+            android:text="🔹  720p" android:textColor="@color/text_primary"
+            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+
+        <TextView android:id="@+id/res_480"
+            android:layout_width="match_parent" android:layout_height="44dp"
+            android:gravity="center_vertical" android:paddingStart="14dp"
+            android:text="🔹  480p" android:textColor="@color/text_primary"
+            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+
+        <TextView android:id="@+id/res_360"
+            android:layout_width="match_parent" android:layout_height="44dp"
+            android:gravity="center_vertical" android:paddingStart="14dp"
+            android:text="🔹  360p" android:textColor="@color/text_primary"
+            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+    </LinearLayout>
+
+    <!-- ── POPUP ASPECT RATIO ─────────────────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/popup_aspect"
+        android:layout_width="180dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="60dp"
+        android:layout_marginEnd="84dp"
+        android:orientation="vertical"
+        android:background="@color/bg_panel"
+        android:elevation="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="UKURAN LAYAR"
+            android:textColor="@color/text_muted"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.15"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="6dp" />
+
+        <TextView android:id="@+id/aspect_fit"
+            android:layout_width="match_parent" android:layout_height="44dp"
+            android:gravity="center_vertical" android:paddingStart="14dp"
+            android:text="▣  Fit (Default)" android:textColor="@color/accent"
+            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/border" />
+
+        <TextView android:id="@+id/aspect_fill"
+            android:layout_width="match_parent" android:layout_height="44dp"
+            android:gravity="center_vertical" android:paddingStart="14dp"
+            android:text="⬛  Fill / Crop" android:textColor="@color/text_primary"
+            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/border" />
+
+        <TextView android:id="@+id/aspect_stretch"
+            android:layout_width="match_parent" android:layout_height="44dp"
+            android:gravity="center_vertical" android:paddingStart="14dp"
+            android:text="↔  Stretch" android:textColor="@color/text_primary"
+            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/border" />
+
+        <TextView android:id="@+id/aspect_zoom"
+            android:layout_width="match_parent" android:layout_height="44dp"
+            android:gravity="center_vertical" android:paddingStart="14dp"
+            android:text="🔍  Zoom" android:textColor="@color/text_primary"
+            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+    </LinearLayout>
+
+    <!-- ── NOTIFIKASI PINDAH CHANNEL (muncul sebentar di atas) ────── -->
+    <LinearLayout
+        android:id="@+id/overlay_channel_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="70dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_status_overlay"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tv_switch_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pindah ke Channel"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
 </FrameLayout>
