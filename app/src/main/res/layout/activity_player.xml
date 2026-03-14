@@ -1,276 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FF000000"
     android:keepScreenOn="true">
 
-    <!-- ── VIDEO ────────────────────────────────────────────────── -->
+    <!--
+        PlayerView dengan controller TERINTEGRASI (custom_control).
+        Kontrol muncul/hilang otomatis saat tap — sama seperti SymphogearTV.
+        controllerShowTimeoutMs=4000 → auto-hide setelah 4 detik.
+    -->
     <androidx.media3.ui.PlayerView
         android:id="@+id/player_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:focusable="true" />
-
-    <!-- ── TOP OVERLAY (info + tombol) ─────────────────────────── -->
-    <LinearLayout
-        android:id="@+id/overlay_info"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="@drawable/gradient_overlay_top"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:paddingTop="16dp"
-        android:paddingBottom="20dp"
-        android:visibility="visible">
-
-        <!-- Row: Logo + Nama + Tombol-tombol -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <!-- Logo -->
-            <ImageView
-                android:id="@+id/iv_channel_logo"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:scaleType="fitCenter"
-                android:background="@drawable/bg_logo_player"
-                android:padding="5dp"
-                android:layout_marginEnd="12dp" />
-
-            <!-- Nama + LIVE -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/tv_channel_name"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Channel"
-                    android:textColor="@color/text_primary"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="3dp">
-
-                    <View
-                        android:layout_width="6dp"
-                        android:layout_height="6dp"
-                        android:background="@drawable/shape_live_dot"
-                        android:layout_marginEnd="5dp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="LIVE"
-                        android:textColor="#FFFF3D71"
-                        android:textSize="10sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.1" />
-
-                    <!-- Channel number label -->
-                    <TextView
-                        android:id="@+id/tv_ch_number"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="@color/text_muted"
-                        android:textSize="10sp"
-                        android:layout_marginStart="8dp" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- ── ACTION BUTTONS ── -->
-
-            <!-- Resolusi -->
-            <LinearLayout
-                android:id="@+id/btn_resolution"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="@drawable/bg_icon_btn"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:layout_marginEnd="8dp">
-
-                <TextView
-                    android:id="@+id/tv_resolution_label"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="AUTO"
-                    android:textColor="@color/accent"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- Ukuran layar / Aspect Ratio -->
-            <LinearLayout
-                android:id="@+id/btn_aspect"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:background="@drawable/bg_icon_btn"
-                android:clickable="true"
-                android:focusable="true"
-                android:layout_marginEnd="8dp">
-
-                <TextView
-                    android:id="@+id/tv_aspect_icon"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="⛶"
-                    android:textColor="@color/text_muted"
-                    android:textSize="16sp" />
-            </LinearLayout>
-
-            <!-- Channel List Panel Toggle -->
-            <LinearLayout
-                android:id="@+id/btn_channel_list"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:gravity="center"
-                android:background="@drawable/bg_icon_btn"
-                android:clickable="true"
-                android:focusable="true"
-                android:layout_marginEnd="8dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="☰"
-                    android:textColor="@color/text_muted"
-                    android:textSize="16sp" />
-            </LinearLayout>
-
-            <!-- Kembali -->
-            <LinearLayout
-                android:id="@+id/btn_back_player"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="@drawable/bg_icon_btn"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:clickable="true"
-                android:focusable="true">
-
-                <ImageView
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:src="@drawable/ic_back"
-                    android:tint="@color/text_primary" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="  Keluar"
-                    android:textColor="@color/text_primary"
-                    android:textSize="12sp" />
-            </LinearLayout>
-        </LinearLayout>
-
-    </LinearLayout>
-
-    <!-- ── PREV / NEXT CHANNEL (kiri-kanan layar) ───────────────── -->
-    <LinearLayout
-        android:id="@+id/btn_prev_channel"
-        android:layout_width="48dp"
-        android:layout_height="80dp"
-        android:layout_gravity="center_vertical|start"
-        android:layout_marginStart="8dp"
-        android:gravity="center"
-        android:background="@drawable/bg_status_overlay"
-        android:clickable="true"
         android:focusable="true"
-        android:visibility="gone">
+        android:keepScreenOn="true"
+        app:controller_layout_id="@layout/player_custom_control"
+        app:show_buffering="when_playing"
+        app:use_controller="true"
+        app:hide_on_touch="true"
+        app:keep_content_on_player_reset="true" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="◀"
-            android:textColor="@color/text_primary"
-            android:textSize="20sp" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/btn_next_channel"
-        android:layout_width="48dp"
-        android:layout_height="80dp"
-        android:layout_gravity="center_vertical|end"
-        android:layout_marginEnd="8dp"
-        android:gravity="center"
-        android:background="@drawable/bg_status_overlay"
-        android:clickable="true"
-        android:focusable="true"
-        android:visibility="gone">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="▶"
-            android:textColor="@color/text_primary"
-            android:textSize="20sp" />
-    </LinearLayout>
-
-    <!-- ── STATUS / BUFFERING (tengah) ──────────────────────────── -->
-    <LinearLayout
-        android:id="@+id/overlay_status"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:background="@drawable/bg_status_overlay"
-        android:padding="20dp"
-        android:visibility="visible">
-
-        <ProgressBar
-            android:id="@+id/progress_buffering"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:indeterminateTint="@color/accent"
-            android:visibility="visible" />
-
-        <TextView
-            android:id="@+id/tv_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Memuat stream…"
-            android:textColor="@color/text_primary"
-            android:textSize="14sp"
-            android:gravity="center"
-            android:layout_marginTop="8dp" />
-    </LinearLayout>
-
-    <!-- ── PANEL KANAN: Daftar Channel ──────────────────────────── -->
+    <!-- ── PANEL KANAN: Daftar Channel (di luar PlayerView) ──────── -->
     <LinearLayout
         android:id="@+id/panel_channel_list"
-        android:layout_width="280dp"
+        android:layout_width="300dp"
         android:layout_height="match_parent"
         android:layout_gravity="end"
         android:orientation="vertical"
-        android:background="#E6050810"
+        android:background="#EE050810"
+        android:elevation="10dp"
         android:visibility="gone">
 
-        <!-- Header panel -->
+        <!-- Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="52dp"
@@ -292,7 +57,7 @@
                 android:layout_weight="1"
                 android:text="CHANNEL"
                 android:textColor="@color/text_primary"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.1" />
 
@@ -308,15 +73,21 @@
                 android:focusable="true" />
         </LinearLayout>
 
-        <!-- Search di dalam panel -->
+        <!-- Search -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="44dp"
-            android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
             android:background="@color/bg_card">
+
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:src="@drawable/ic_search"
+                android:tint="@color/text_muted"
+                android:layout_marginEnd="8dp" />
 
             <EditText
                 android:id="@+id/et_panel_search"
@@ -332,7 +103,7 @@
                 android:singleLine="true" />
         </LinearLayout>
 
-        <!-- Channel list RecyclerView -->
+        <!-- Channel list -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_panel_channels"
             android:layout_width="match_parent"
@@ -341,17 +112,17 @@
             android:scrollbars="vertical" />
     </LinearLayout>
 
-    <!-- ── POPUP RESOLUSI ────────────────────────────────────────── -->
+    <!-- ── POPUP RESOLUSI ──────────────────────────────────────────── -->
     <LinearLayout
         android:id="@+id/popup_resolution"
-        android:layout_width="160dp"
+        android:layout_width="170dp"
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
-        android:layout_marginTop="60dp"
-        android:layout_marginEnd="130dp"
+        android:layout_marginTop="68dp"
+        android:layout_marginEnd="180dp"
         android:orientation="vertical"
         android:background="@color/bg_panel"
-        android:elevation="8dp"
+        android:elevation="12dp"
         android:visibility="gone">
 
         <TextView
@@ -363,54 +134,64 @@
             android:textStyle="bold"
             android:letterSpacing="0.15"
             android:paddingStart="14dp"
-            android:paddingEnd="14dp"
             android:paddingTop="10dp"
             android:paddingBottom="6dp" />
 
         <TextView android:id="@+id/res_auto"
             android:layout_width="match_parent" android:layout_height="44dp"
             android:gravity="center_vertical" android:paddingStart="14dp"
-            android:text="⚡  Auto" android:textColor="@color/accent"
-            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+            android:text="⚡  Auto (Default)"
+            android:textColor="@color/accent" android:textSize="13sp"
+            android:clickable="true" android:focusable="true" />
 
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/border" />
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/border"/>
 
         <TextView android:id="@+id/res_1080"
             android:layout_width="match_parent" android:layout_height="44dp"
             android:gravity="center_vertical" android:paddingStart="14dp"
-            android:text="🔹  1080p" android:textColor="@color/text_primary"
-            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+            android:text="🔹  1080p"
+            android:textColor="@color/text_primary" android:textSize="13sp"
+            android:clickable="true" android:focusable="true" />
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/border"/>
 
         <TextView android:id="@+id/res_720"
             android:layout_width="match_parent" android:layout_height="44dp"
             android:gravity="center_vertical" android:paddingStart="14dp"
-            android:text="🔹  720p" android:textColor="@color/text_primary"
-            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+            android:text="🔹  720p"
+            android:textColor="@color/text_primary" android:textSize="13sp"
+            android:clickable="true" android:focusable="true" />
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/border"/>
 
         <TextView android:id="@+id/res_480"
             android:layout_width="match_parent" android:layout_height="44dp"
             android:gravity="center_vertical" android:paddingStart="14dp"
-            android:text="🔹  480p" android:textColor="@color/text_primary"
-            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+            android:text="🔹  480p"
+            android:textColor="@color/text_primary" android:textSize="13sp"
+            android:clickable="true" android:focusable="true" />
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/border"/>
 
         <TextView android:id="@+id/res_360"
             android:layout_width="match_parent" android:layout_height="44dp"
             android:gravity="center_vertical" android:paddingStart="14dp"
-            android:text="🔹  360p" android:textColor="@color/text_primary"
-            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+            android:text="🔹  360p"
+            android:textColor="@color/text_primary" android:textSize="13sp"
+            android:clickable="true" android:focusable="true" />
     </LinearLayout>
 
-    <!-- ── POPUP ASPECT RATIO ─────────────────────────────────────── -->
+    <!-- ── POPUP UKURAN LAYAR ──────────────────────────────────────── -->
     <LinearLayout
-        android:id="@+id/popup_aspect"
-        android:layout_width="180dp"
+        android:id="@+id/popup_screen_mode"
+        android:layout_width="190dp"
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
-        android:layout_marginTop="60dp"
-        android:layout_marginEnd="84dp"
+        android:layout_marginTop="68dp"
+        android:layout_marginEnd="130dp"
         android:orientation="vertical"
         android:background="@color/bg_panel"
-        android:elevation="8dp"
+        android:elevation="12dp"
         android:visibility="gone">
 
         <TextView
@@ -422,65 +203,99 @@
             android:textStyle="bold"
             android:letterSpacing="0.15"
             android:paddingStart="14dp"
-            android:paddingEnd="14dp"
             android:paddingTop="10dp"
             android:paddingBottom="6dp" />
 
-        <TextView android:id="@+id/aspect_fit"
+        <TextView android:id="@+id/screen_fit"
             android:layout_width="match_parent" android:layout_height="44dp"
             android:gravity="center_vertical" android:paddingStart="14dp"
-            android:text="▣  Fit (Default)" android:textColor="@color/accent"
-            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+            android:text="▣  Fit (Default)"
+            android:textColor="@color/accent" android:textSize="13sp"
+            android:clickable="true" android:focusable="true" />
 
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/border" />
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/border"/>
 
-        <TextView android:id="@+id/aspect_fill"
+        <TextView android:id="@+id/screen_fixed_width"
             android:layout_width="match_parent" android:layout_height="44dp"
             android:gravity="center_vertical" android:paddingStart="14dp"
-            android:text="⬛  Fill / Crop" android:textColor="@color/text_primary"
-            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+            android:text="↔  Fixed Width"
+            android:textColor="@color/text_primary" android:textSize="13sp"
+            android:clickable="true" android:focusable="true" />
 
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/border" />
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/border"/>
 
-        <TextView android:id="@+id/aspect_stretch"
+        <TextView android:id="@+id/screen_fixed_height"
             android:layout_width="match_parent" android:layout_height="44dp"
             android:gravity="center_vertical" android:paddingStart="14dp"
-            android:text="↔  Stretch" android:textColor="@color/text_primary"
-            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+            android:text="↕  Fixed Height"
+            android:textColor="@color/text_primary" android:textSize="13sp"
+            android:clickable="true" android:focusable="true" />
 
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/border" />
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/border"/>
 
-        <TextView android:id="@+id/aspect_zoom"
+        <TextView android:id="@+id/screen_fill"
             android:layout_width="match_parent" android:layout_height="44dp"
             android:gravity="center_vertical" android:paddingStart="14dp"
-            android:text="🔍  Zoom" android:textColor="@color/text_primary"
-            android:textSize="13sp" android:clickable="true" android:focusable="true" />
+            android:text="⬛  Fill"
+            android:textColor="@color/text_primary" android:textSize="13sp"
+            android:clickable="true" android:focusable="true" />
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/border"/>
+
+        <TextView android:id="@+id/screen_zoom"
+            android:layout_width="match_parent" android:layout_height="44dp"
+            android:gravity="center_vertical" android:paddingStart="14dp"
+            android:text="🔍  Zoom"
+            android:textColor="@color/text_primary" android:textSize="13sp"
+            android:clickable="true" android:focusable="true" />
     </LinearLayout>
 
-    <!-- ── NOTIFIKASI PINDAH CHANNEL (muncul sebentar di atas) ────── -->
-    <LinearLayout
-        android:id="@+id/overlay_channel_switch"
+    <!-- Notifikasi pindah channel -->
+    <TextView
+        android:id="@+id/tv_channel_switch_notif"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|center_horizontal"
-        android:layout_marginTop="70dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@drawable/bg_status_overlay"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        android:layout_marginTop="72dp"
+        android:background="@color/bg_status_overlay"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
         android:paddingTop="10dp"
         android:paddingBottom="10dp"
+        android:text=""
+        android:textColor="@color/text_primary"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        android:elevation="12dp" />
+
+    <!-- Buffering / Status overlay -->
+    <LinearLayout
+        android:id="@+id/overlay_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@color/bg_status_overlay"
+        android:padding="20dp"
         android:visibility="gone">
 
+        <ProgressBar
+            android:id="@+id/progress_buffering"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:indeterminateTint="@color/accent" />
+
         <TextView
-            android:id="@+id/tv_switch_name"
+            android:id="@+id/tv_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Pindah ke Channel"
+            android:text="Memuat…"
             android:textColor="@color/text_primary"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:textSize="13sp"
+            android:gravity="center"
+            android:layout_marginTop="8dp" />
     </LinearLayout>
 
 </FrameLayout>
